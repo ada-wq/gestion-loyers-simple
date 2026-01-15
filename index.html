@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Gestion Loyers CFA</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div id="login" class="min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-xl shadow-xl w-96">
+    <h1 class="text-2xl font-bold text-blue-900 text-center mb-4">Gestion Loyers CFA</h1>
+    <input id="email" value="admin@example.com" class="w-full mb-2 p-2 border rounded">
+    <input id="password" value="admin123" type="password" class="w-full mb-4 p-2 border rounded">
+    <button onclick="login()" class="w-full bg-blue-800 text-white p-2 rounded">Connexion</button>
+  </div>
+</div>
+
+<div id="app" class="hidden p-6">
+  <h2 class="text-xl font-bold mb-4">Dashboard</h2>
+  <div id="stats" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"></div>
+
+  <button onclick="addProperty()" class="bg-green-700 text-white px-4 py-2 rounded mb-4">
+    ➕ Ajouter logement
+  </button>
+
+  <div id="list" class="bg-white rounded shadow"></div>
+</div>
+
+<script>
+let token="";
+
+function login(){
+ fetch('/api/login',{
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({email:email.value,password:password.value})
+ }).then(r=>r.json()).then(d=>{
+  token=d.token;
+  login.classList.add("hidden");
+  app.classList.remove("hidden");
+  load();
+ });
+}
+
+function load(){
+ fetch('/api/dashboard/stats',{headers:{Authorization:'Bearer '+token}})
+ .then(r=>r.json()).then(s=>{
+  stats.innerHTML=`
+   <div class="p-4 bg-white rounded shadow">Logements<br><b>${s.totalProperties}</b></div>
+   <div class="p-4 bg-white rounded shadow">Loyers<br><b>${s.totalMonthlyRent} FCFA</b></div>
+   <div class="p-4 bg-white rounded shadow">Bientôt<br><b>${s.soonDue}</b></div>
+   <div class="p-4 bg-white rounded shadow">Retard<br><b>${s.late}</b></div>`;
+ });
+
+ fetch('/api/properties',{headers:{Authorization:'Bearer '+token}})
+ .then(r=>r.json()).then(p=>{
+  list.innerHTML=p.map(x=>`
+   <div class="border-b p-4 flex justify-between">
+    <div>
+     <b>${x.name}</b><br>
+     ${x.tenant_name} – ${x.monthly_rent} FCFA
+    </div>
+    <button onclick="pay(${x.id})" class="text-green-700">💰 Paiement</button>
+   </div>`).join('');
+ });
+}
+
+function pay(id){
+ const m=prompt("Mois payés","1");
+ if(!m)return;
+ fetch('/api/properties/'+id+'/payment',{
+  method:'POST',
+  headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+  body:JSON.stringify({months:parseInt(m)})
+ }).then(()=>load());
+}
+
+function addProperty(){
+ const name=prompt("Nom logement");
+ const rent=prompt("Loyer FCFA");
+ fetch('/api/properties',{
+  method:'POST',
+  headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+  body:JSON.stringify({
+   name,
+   address:'-',
+   tenant_name:'-',
+   monthly_rent:parseInt(rent),
+   start_date:new Date().toISOString().split('T')[0],
+   months_paid:0,
+   notes:''
+  })
+ }).then(()=>load());
+}
+</script>
+</body>
+</html>
