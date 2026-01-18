@@ -26,6 +26,56 @@
         .card-hover:hover {
             transform: translateY(-2px);
             transition: transform 0.2s ease;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 640px) {
+            .modal-content {
+                padding: 1.5rem;
+                width: 95%;
+            }
         }
     </style>
 </head>
@@ -51,7 +101,8 @@
                     </label>
                     <input type="email" id="loginEmail" 
                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="votre@entreprise-cfa.com">
+                           placeholder="admin@entreprise-cfa.com"
+                           value="admin@entreprise-cfa.com">
                 </div>
                 
                 <div class="mb-8">
@@ -60,7 +111,8 @@
                     </label>
                     <input type="password" id="loginPassword" 
                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="••••••••">
+                           placeholder="••••••••"
+                           value="admin123456">
                 </div>
                 
                 <button onclick="login()" 
@@ -70,6 +122,7 @@
                 
                 <div class="mt-6 text-center text-sm text-gray-500">
                     <p>Accès réservé aux membres autorisés de l'entreprise CFA</p>
+                    <p class="mt-2 text-xs">Utilisez les identifiants par défaut pour tester</p>
                 </div>
             </div>
         </div>
@@ -96,26 +149,21 @@
                             <i class="fas fa-user text-blue-600"></i>
                         </div>
                         <div>
-                            <p class="font-semibold" id="userName"></p>
-                            <p class="text-sm text-gray-500" id="userRole"></p>
+                            <p class="font-semibold" id="userName">Chargement...</p>
+                            <p class="text-sm text-gray-500" id="userRole">Chargement...</p>
                         </div>
                     </div>
                 </div>
                 
                 <nav class="space-y-1">
-                    <a onclick="showSection('dashboard')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
-                        <i class="fas fa-chart-bar w-6 mr-3 text-gray-500"></i>
+                    <a onclick="showSection('dashboard')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer active">
+                        <i class="fas fa-chart-bar w-6 mr-3 text-white"></i>
                         <span>Tableau de bord</span>
                     </a>
                     
                     <a onclick="showSection('properties')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
                         <i class="fas fa-home w-6 mr-3 text-gray-500"></i>
                         <span>Mes logements</span>
-                    </a>
-                    
-                    <a onclick="showSection('payments')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
-                        <i class="fas fa-money-bill-wave w-6 mr-3 text-gray-500"></i>
-                        <span>Paiements</span>
                     </a>
                     
                     <div id="adminMenu" class="hidden">
@@ -156,25 +204,34 @@
                 </button>
                 <div class="text-center">
                     <h2 class="font-bold text-gray-800">Gestion Loyers</h2>
-                    <p class="text-xs text-gray-500" id="mobileUserRole"></p>
+                    <p class="text-xs text-gray-500" id="mobileUserRole">Chargement...</p>
                 </div>
-                <button onclick="toggleNotifications()" class="text-gray-600 relative">
-                    <i class="fas fa-bell text-xl"></i>
-                    <span id="notificationCount" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-                </button>
+                <div class="w-8"></div>
             </div>
             
             <!-- Mobile Menu -->
             <div id="mobileMenu" class="hidden mt-4 bg-white rounded-lg shadow-lg p-4">
                 <div class="space-y-2">
-                    <button onclick="showSection('dashboard')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">📊 Tableau de bord</button>
-                    <button onclick="showSection('properties')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">🏠 Mes logements</button>
-                    <button onclick="showSection('payments')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">💰 Paiements</button>
+                    <button onclick="showSection('dashboard')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg flex items-center">
+                        <i class="fas fa-chart-bar w-6 mr-3"></i>Tableau de bord
+                    </button>
+                    <button onclick="showSection('properties')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg flex items-center">
+                        <i class="fas fa-home w-6 mr-3"></i>Mes logements
+                    </button>
                     <div id="mobileAdminMenu" class="hidden">
-                        <button onclick="showSection('users')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">👥 Équipe</button>
-                        <button onclick="showSection('settings')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">⚙️ Paramètres</button>
+                        <button onclick="showSection('users')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg flex items-center">
+                            <i class="fas fa-users w-6 mr-3"></i>Équipe
+                        </button>
+                        <button onclick="showSection('settings')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg flex items-center">
+                            <i class="fas fa-cog w-6 mr-3"></i>Paramètres
+                        </button>
                     </div>
-                    <button onclick="logout()" class="w-full text-left p-3 text-red-600 hover:bg-red-50 rounded-lg mt-4">🚪 Déconnexion</button>
+                    <button onclick="showSection('profile')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg flex items-center">
+                        <i class="fas fa-user-circle w-6 mr-3"></i>Mon profil
+                    </button>
+                    <button onclick="logout()" class="w-full text-left p-3 text-red-600 hover:bg-red-50 rounded-lg mt-4 flex items-center">
+                        <i class="fas fa-sign-out-alt w-6 mr-3"></i>Déconnexion
+                    </button>
                 </div>
             </div>
         </div>
@@ -182,63 +239,70 @@
         <!-- Main Content -->
         <div class="lg:ml-64 p-4 lg:p-8">
             <!-- Notifications -->
-            <div id="notifications" class="hidden mb-6">
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-exclamation-circle text-yellow-400 text-xl"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-yellow-700" id="notificationMessage"></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="notificationContainer" class="fixed top-4 right-4 z-50 max-w-md"></div>
 
             <!-- Sections -->
             <div id="sections">
                 <!-- Dashboard Section -->
-                <div id="dashboardSection" class="section">
+                <div id="dashboardSection" class="section active">
                     <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-8">Tableau de bord</h1>
                     
-                    <!-- Stats Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="statsCards"></div>
+                    <!-- Loading State -->
+                    <div id="dashboardLoading" class="text-center py-12">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                        <p class="text-gray-600">Chargement du tableau de bord...</p>
+                    </div>
                     
-                    <!-- Quick Actions -->
-                    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-6">Actions rapides</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <button onclick="showAddPropertyModal()" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 rounded-lg text-center">
-                                <i class="fas fa-plus-circle text-2xl mb-2"></i>
-                                <p class="font-semibold">Nouveau logement</p>
-                            </button>
-                            <button onclick="showSection('properties')" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-4 rounded-lg text-center">
-                                <i class="fas fa-home text-2xl mb-2"></i>
-                                <p class="font-semibold">Voir mes logements</p>
-                            </button>
-                            <button onclick="checkReminders()" class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-4 rounded-lg text-center">
-                                <i class="fas fa-bell text-2xl mb-2"></i>
-                                <p class="font-semibold">Vérifier les rappels</p>
-                            </button>
+                    <!-- Dashboard Content (hidden by default) -->
+                    <div id="dashboardContent" class="hidden">
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="statsCards"></div>
+                        
+                        <!-- Quick Actions -->
+                        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-6">Actions rapides</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <button onclick="showAddPropertyModal()" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 rounded-lg text-center card-hover">
+                                    <i class="fas fa-plus-circle text-2xl mb-2"></i>
+                                    <p class="font-semibold">Nouveau logement</p>
+                                </button>
+                                <button onclick="showSection('properties')" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-4 rounded-lg text-center card-hover">
+                                    <i class="fas fa-home text-2xl mb-2"></i>
+                                    <p class="font-semibold">Voir mes logements</p>
+                                </button>
+                                <button onclick="checkReminders()" class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-4 rounded-lg text-center card-hover">
+                                    <i class="fas fa-bell text-2xl mb-2"></i>
+                                    <p class="font-semibold">Vérifier les rappels</p>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Properties Needing Attention -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-xl font-semibold text-gray-800">Logements nécessitant attention</h2>
+                                <span id="attentionCount" class="bg-red-500 text-white text-sm font-semibold px-3 py-1 rounded-full">0</span>
+                            </div>
+                            <div id="attentionList"></div>
                         </div>
                     </div>
                     
-                    <!-- Properties Needing Attention -->
-                    <div class="bg-white rounded-xl shadow-lg p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-semibold text-gray-800">Logements nécessitant attention</h2>
-                            <span id="attentionCount" class="bg-red-500 text-white text-sm font-semibold px-3 py-1 rounded-full">0</span>
-                        </div>
-                        <div id="attentionList"></div>
+                    <!-- Error State -->
+                    <div id="dashboardError" class="hidden text-center py-12">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-gray-600 mb-4" id="dashboardErrorMessage"></p>
+                        <button onclick="loadDashboard()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+                            <i class="fas fa-redo mr-2"></i>Réessayer
+                        </button>
                     </div>
                 </div>
 
                 <!-- Properties Section -->
-                <div id="propertiesSection" class="section hidden">
-                    <div class="flex justify-between items-center mb-8">
+                <div id="propertiesSection" class="section">
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8 gap-4">
                         <h1 class="text-2xl lg:text-3xl font-bold text-gray-800">Mes logements</h1>
                         <button onclick="showAddPropertyModal()" 
-                                class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition duration-300">
+                                class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition duration-300 whitespace-nowrap">
                             <i class="fas fa-plus-circle mr-2"></i>Ajouter un logement
                         </button>
                     </div>
@@ -253,22 +317,55 @@
                                 <option value="late">En retard</option>
                             </select>
                             <input type="text" id="searchProperty" placeholder="Rechercher un logement..." 
-                                   class="border border-gray-300 rounded-lg p-2 flex-grow" onkeyup="loadProperties()">
+                                   class="border border-gray-300 rounded-lg p-2 flex-grow min-w-[200px]" 
+                                   onkeyup="loadProperties()">
                         </div>
                     </div>
                     
+                    <!-- Properties Loading -->
+                    <div id="propertiesLoading" class="text-center py-12">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                        <p class="text-gray-600">Chargement des logements...</p>
+                    </div>
+                    
                     <!-- Properties List -->
-                    <div id="propertiesList" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+                    <div id="propertiesList" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden"></div>
+                    
+                    <!-- Properties Error -->
+                    <div id="propertiesError" class="hidden text-center py-12">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-gray-600 mb-4" id="propertiesErrorMessage"></p>
+                        <button onclick="loadProperties()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+                            <i class="fas fa-redo mr-2"></i>Réessayer
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Users Section (Admin only) -->
-                <div id="usersSection" class="section hidden">
+                <div id="usersSection" class="section">
                     <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-8">Gestion des équipes</h1>
                     <div id="usersList"></div>
                 </div>
 
+                <!-- Settings Section (Admin only) -->
+                <div id="settingsSection" class="section">
+                    <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-8">Paramètres</h1>
+                    <div id="settingsContent" class="bg-white rounded-xl shadow-lg p-6 max-w-2xl"></div>
+                </div>
+
+                <!-- Reports Section (Admin only) -->
+                <div id="reportsSection" class="section">
+                    <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-8">Rapports</h1>
+                    <div id="reportsContent" class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold mb-4">Rapports mensuels</h3>
+                            <div id="reportsList" class="space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Profile Section -->
-                <div id="profileSection" class="section hidden">
+                <div id="profileSection" class="section">
                     <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-8">Mon profil</h1>
                     <div id="profileContent" class="bg-white rounded-xl shadow-lg p-6 max-w-2xl"></div>
                 </div>
@@ -279,15 +376,37 @@
     <!-- Modals -->
     <div id="addPropertyModal" class="modal hidden">
         <div class="modal-content">
-            <h3 class="text-2xl font-bold text-gray-800 mb-6">Nouveau logement</h3>
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Nouveau logement</h3>
+                <button onclick="hideModal('addPropertyModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
             <form id="addPropertyForm" onsubmit="saveProperty(event)"></form>
         </div>
     </div>
 
     <div id="paymentModal" class="modal hidden">
         <div class="modal-content">
-            <h3 class="text-2xl font-bold text-gray-800 mb-6">Enregistrer un paiement</h3>
-            <div id="paymentForm"></div>
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Enregistrer un paiement</h3>
+                <button onclick="hideModal('paymentModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="paymentFormContent"></div>
+        </div>
+    </div>
+
+    <div id="addUserModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Nouvel utilisateur</h3>
+                <button onclick="hideModal('addUserModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="addUserForm" onsubmit="saveUser(event)"></form>
         </div>
     </div>
 
@@ -299,6 +418,7 @@
 
         // Initialisation
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('Application initialisée');
             // Vérifier si déjà connecté
             const savedToken = localStorage.getItem('gestion_loyers_token');
             if (savedToken) {
@@ -313,11 +433,13 @@
             const password = document.getElementById('loginPassword').value;
             
             if (!email || !password) {
-                showError('Veuillez remplir tous les champs');
+                showNotification('Veuillez remplir tous les champs', 'error');
                 return;
             }
             
             try {
+                showNotification('Connexion en cours...', 'info');
+                
                 const response = await fetch(`${API_BASE}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -343,8 +465,11 @@
                 // Initialiser l'interface
                 initializeApp();
                 
+                showNotification('Connexion réussie !', 'success');
+                
             } catch (error) {
-                showError(error.message);
+                console.error('Login error:', error);
+                showNotification(error.message, 'error');
             }
         }
 
@@ -356,11 +481,14 @@
                 document.getElementById('app').classList.add('hidden');
                 document.getElementById('loginScreen').classList.remove('hidden');
                 document.getElementById('loginPassword').value = '';
+                showNotification('Déconnexion réussie', 'success');
             }
         }
 
         async function loadUserProfile() {
             try {
+                showNotification('Chargement du profil...', 'info');
+                
                 const response = await fetch(`${API_BASE}/api/dashboard`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -368,31 +496,42 @@
                 if (response.ok) {
                     const data = await response.json();
                     
-                    // Simuler un utilisateur (pour la démo)
-                    currentUser = {
-                        id: 1,
-                        email: 'admin@entreprise-cfa.com',
-                        full_name: 'Administrateur',
-                        role: 'admin'
-                    };
+                    // Pour la démo, créer un utilisateur fictif si l'API ne retourne pas user
+                    if (!currentUser) {
+                        currentUser = {
+                            id: 1,
+                            email: 'admin@entreprise-cfa.com',
+                            full_name: 'Administrateur',
+                            role: 'admin'
+                        };
+                    }
                     
                     document.getElementById('loginScreen').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
                     initializeApp();
-                } else {
+                    
+                } else if (response.status === 401) {
                     throw new Error('Session expirée');
+                } else {
+                    throw new Error('Erreur de chargement du profil');
                 }
             } catch (error) {
+                console.error('Load profile error:', error);
                 localStorage.removeItem('gestion_loyers_token');
-                showError('Session expirée. Veuillez vous reconnecter.');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('app').classList.add('hidden');
+                showNotification('Session expirée. Veuillez vous reconnecter.', 'error');
             }
         }
 
         function initializeApp() {
+            console.log('Initializing app for user:', currentUser);
+            
             // Mettre à jour l'interface utilisateur
-            document.getElementById('userName').textContent = currentUser.full_name;
-            document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Administrateur' : 'Associé';
-            document.getElementById('mobileUserRole').textContent = currentUser.role === 'admin' ? 'Administrateur' : 'Associé';
+            document.getElementById('userName').textContent = currentUser.full_name || 'Utilisateur';
+            const roleText = currentUser.role === 'admin' ? 'Administrateur' : 'Associé';
+            document.getElementById('userRole').textContent = roleText;
+            document.getElementById('mobileUserRole').textContent = roleText;
             
             // Afficher/masquer les menus admin
             if (currentUser.role === 'admin') {
@@ -400,34 +539,60 @@
                 document.getElementById('mobileAdminMenu').classList.remove('hidden');
             }
             
-            // Charger le tableau de bord
-            showSection('dashboard');
-            loadDashboard();
+            // Activer l'élément de sidebar "Dashboard" par défaut
+            activateSidebarItem('dashboard');
             
-            // Activer l'élément actif du sidebar
+            // Charger le tableau de bord
+            loadDashboard();
+        }
+
+        function activateSidebarItem(sectionId) {
+            // Désactiver tous les éléments
             document.querySelectorAll('.sidebar-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    document.querySelectorAll('.sidebar-item').forEach(i => {
-                        i.classList.remove('active', 'text-white');
-                        i.querySelector('i').classList.remove('text-white');
-                        i.querySelector('i').classList.add('text-gray-500');
-                    });
-                    this.classList.add('active', 'text-white');
-                    this.querySelector('i').classList.remove('text-gray-500');
-                    this.querySelector('i').classList.add('text-white');
-                });
+                item.classList.remove('active', 'text-white');
+                const icon = item.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('text-white');
+                    icon.classList.add('text-gray-500');
+                }
             });
+            
+            // Activer l'élément correspondant
+            const activeItem = Array.from(document.querySelectorAll('.sidebar-item')).find(item => {
+                return item.textContent.includes(
+                    sectionId === 'dashboard' ? 'Tableau' :
+                    sectionId === 'properties' ? 'logements' :
+                    sectionId === 'users' ? 'équipes' :
+                    sectionId === 'settings' ? 'Paramètres' :
+                    sectionId === 'profile' ? 'profil' : ''
+                );
+            });
+            
+            if (activeItem) {
+                activeItem.classList.add('active', 'text-white');
+                const icon = activeItem.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('text-gray-500');
+                    icon.classList.add('text-white');
+                }
+            }
         }
 
         // Fonctions d'interface
         function showSection(sectionName) {
+            console.log('Showing section:', sectionName);
+            
             // Cacher toutes les sections
             document.querySelectorAll('.section').forEach(section => {
-                section.classList.add('hidden');
+                section.classList.remove('active');
             });
             
             // Afficher la section demandée
-            document.getElementById(sectionName + 'Section').classList.remove('hidden');
+            const sectionElement = document.getElementById(sectionName + 'Section');
+            if (sectionElement) {
+                sectionElement.classList.add('active');
+                activateSidebarItem(sectionName);
+            }
             
             // Charger les données de la section
             switch(sectionName) {
@@ -439,6 +604,12 @@
                     break;
                 case 'users':
                     if (currentUser.role === 'admin') loadUsers();
+                    break;
+                case 'settings':
+                    if (currentUser.role === 'admin') loadSettings();
+                    break;
+                case 'reports':
+                    if (currentUser.role === 'admin') loadReports();
                     break;
                 case 'profile':
                     loadProfile();
@@ -454,26 +625,43 @@
             menu.classList.toggle('hidden');
         }
 
-        function toggleNotifications() {
-            // À implémenter
-        }
-
         async function loadDashboard() {
             try {
+                console.log('Loading dashboard...');
+                
+                // Show loading state
+                document.getElementById('dashboardLoading').classList.remove('hidden');
+                document.getElementById('dashboardContent').classList.add('hidden');
+                document.getElementById('dashboardError').classList.add('hidden');
+                
                 const response = await fetch(`${API_BASE}/api/dashboard`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
-                if (!response.ok) throw new Error('Erreur de chargement');
+                if (response.status === 401) {
+                    throw new Error('Session expirée. Veuillez vous reconnecter.');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+                }
                 
                 const data = await response.json();
+                console.log('Dashboard data:', data);
+                
+                // Hide loading, show content
+                document.getElementById('dashboardLoading').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
                 
                 // Mettre à jour les cartes de stats
                 document.getElementById('statsCards').innerHTML = `
                     <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl shadow-lg border border-blue-200 card-hover">
                         <div class="flex justify-between items-start">
                             <div>
-                                <div class="text-3xl font-bold text-blue-900">${data.totalProperties}</div>
+                                <div class="text-3xl font-bold text-blue-900">${data.totalProperties || 0}</div>
                                 <div class="text-gray-600 font-medium">Logements</div>
                             </div>
                             <div class="text-blue-600 text-3xl">
@@ -485,7 +673,7 @@
                     <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-2xl shadow-lg border border-emerald-200 card-hover">
                         <div class="flex justify-between items-start">
                             <div>
-                                <div class="text-3xl font-bold text-emerald-800">${data.totalMonthlyRent.toLocaleString()} FCFA</div>
+                                <div class="text-3xl font-bold text-emerald-800">${(data.totalMonthlyRent || 0).toLocaleString()} FCFA</div>
                                 <div class="text-gray-600 font-medium">Revenu mensuel</div>
                             </div>
                             <div class="text-emerald-600 text-3xl">
@@ -497,7 +685,7 @@
                     <div class="bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-2xl shadow-lg border border-amber-200 card-hover">
                         <div class="flex justify-between items-start">
                             <div>
-                                <div class="text-3xl font-bold text-amber-700">${data.soonDue}</div>
+                                <div class="text-3xl font-bold text-amber-700">${data.soonDue || 0}</div>
                                 <div class="text-gray-600 font-medium">Bientôt dû</div>
                             </div>
                             <div class="text-amber-600 text-3xl">
@@ -509,7 +697,7 @@
                     <div class="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-lg border border-red-200 card-hover">
                         <div class="flex justify-between items-start">
                             <div>
-                                <div class="text-3xl font-bold text-red-700">${data.late}</div>
+                                <div class="text-3xl font-bold text-red-700">${data.late || 0}</div>
                                 <div class="text-gray-600 font-medium">En retard</div>
                             </div>
                             <div class="text-red-600 text-3xl">
@@ -520,22 +708,27 @@
                 `;
                 
                 // Logements nécessitant attention
-                const attentionProperties = data.properties.filter(p => p.need_attention);
+                const attentionProperties = (data.properties || []).filter(p => p.need_attention);
                 document.getElementById('attentionCount').textContent = attentionProperties.length;
                 
                 if (attentionProperties.length > 0) {
                     document.getElementById('attentionList').innerHTML = attentionProperties.map(prop => `
-                        <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4 mb-3">
+                        <div class="border ${prop.status === 'late' ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'} rounded-lg p-4 mb-3">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <h4 class="font-semibold text-gray-800">${prop.name}</h4>
+                                    <h4 class="font-semibold text-gray-800">${prop.name || 'Sans nom'}</h4>
                                     <p class="text-sm text-gray-600">${prop.tenant_name || 'Locataire non renseigné'}</p>
                                     <p class="text-sm mt-2">
-                                        <span class="font-semibold">Date de fin :</span> ${prop.end_date}
-                                        <span class="ml-4 font-semibold">Jours restants :</span> ${prop.days_remaining}
+                                        <span class="font-semibold">Date de fin :</span> ${prop.end_date || 'Non définie'}
+                                        <span class="ml-4 font-semibold">Jours restants :</span> ${prop.days_remaining || 0}
                                     </p>
+                                    <span class="inline-block mt-2 px-2 py-1 text-xs rounded ${
+                                        prop.status === 'late' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                                    }">
+                                        ${prop.status === 'late' ? 'EN RETARD' : 'BIENTÔT DÛ'}
+                                    </span>
                                 </div>
-                                <button onclick="showPaymentModal(${prop.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm">
+                                <button onclick="showPaymentModal(${prop.id})" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap">
                                     <i class="fas fa-money-bill mr-2"></i>Marquer payé
                                 </button>
                             </div>
@@ -546,23 +739,51 @@
                         <div class="text-center py-8 text-gray-500">
                             <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
                             <p class="text-lg">Aucun logement ne nécessite d'attention immédiate</p>
+                            <p class="text-sm mt-2">Tous vos logements sont à jour</p>
                         </div>
                     `;
                 }
                 
             } catch (error) {
-                console.error('Erreur dashboard:', error);
-                showError('Erreur de chargement du tableau de bord');
+                console.error('Dashboard error:', error);
+                
+                // Show error state
+                document.getElementById('dashboardLoading').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.add('hidden');
+                document.getElementById('dashboardError').classList.remove('hidden');
+                
+                document.getElementById('dashboardErrorMessage').textContent = error.message || 'Erreur de chargement du tableau de bord';
+                
+                // If session expired, force logout
+                if (error.message.includes('Session expirée')) {
+                    setTimeout(() => {
+                        logout();
+                    }, 2000);
+                }
             }
         }
 
         async function loadProperties() {
             try {
+                // Show loading state
+                document.getElementById('propertiesLoading').classList.remove('hidden');
+                document.getElementById('propertiesList').classList.add('hidden');
+                document.getElementById('propertiesError').classList.add('hidden');
+                
                 const response = await fetch(`${API_BASE}/api/properties`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
-                if (!response.ok) throw new Error('Erreur de chargement');
+                if (response.status === 401) {
+                    throw new Error('Session expirée. Veuillez vous reconnecter.');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+                }
                 
                 const properties = await response.json();
                 
@@ -578,9 +799,9 @@
                 
                 if (searchTerm) {
                     filteredProperties = filteredProperties.filter(p => 
-                        p.name.toLowerCase().includes(searchTerm) || 
-                        p.address?.toLowerCase().includes(searchTerm) ||
-                        p.tenant_name?.toLowerCase().includes(searchTerm)
+                        (p.name && p.name.toLowerCase().includes(searchTerm)) || 
+                        (p.address && p.address.toLowerCase().includes(searchTerm)) ||
+                        (p.tenant_name && p.tenant_name.toLowerCase().includes(searchTerm))
                     );
                 }
                 
@@ -593,87 +814,101 @@
                             <p class="text-gray-500">${properties.length === 0 ? 'Commencez par ajouter votre premier logement' : 'Aucun résultat pour votre recherche'}</p>
                         </div>
                     `;
-                    return;
-                }
-                
-                document.getElementById('propertiesList').innerHTML = filteredProperties.map(prop => {
-                    let statusColor = 'green';
-                    let statusIcon = 'check-circle';
-                    let statusText = 'À jour';
-                    
-                    if (prop.status === 'soon-due') {
-                        statusColor = 'yellow';
-                        statusIcon = 'clock';
-                        statusText = 'Bientôt dû';
-                    } else if (prop.status === 'late') {
-                        statusColor = 'red';
-                        statusIcon = 'exclamation-triangle';
-                        statusText = 'En retard';
-                    }
-                    
-                    return `
-                        <div class="bg-white rounded-xl shadow-lg overflow-hidden border-l-4 border-${statusColor}-500">
-                            <div class="p-6">
-                                <div class="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 class="text-xl font-bold text-gray-800">${prop.name}</h3>
-                                        <p class="text-gray-600 text-sm">${prop.address || 'Adresse non renseignée'}</p>
+                } else {
+                    document.getElementById('propertiesList').innerHTML = filteredProperties.map(prop => {
+                        let statusColor = 'green';
+                        let statusIcon = 'check-circle';
+                        let statusText = 'À jour';
+                        
+                        if (prop.status === 'soon-due') {
+                            statusColor = 'yellow';
+                            statusIcon = 'clock';
+                            statusText = 'Bientôt dû';
+                        } else if (prop.status === 'late') {
+                            statusColor = 'red';
+                            statusIcon = 'exclamation-triangle';
+                            statusText = 'En retard';
+                        }
+                        
+                        return `
+                            <div class="bg-white rounded-xl shadow-lg overflow-hidden border-l-4 border-${statusColor}-500 card-hover">
+                                <div class="p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-800">${prop.name || 'Sans nom'}</h3>
+                                            <p class="text-gray-600 text-sm">${prop.address || 'Adresse non renseignée'}</p>
+                                        </div>
+                                        <span class="bg-${statusColor}-100 text-${statusColor}-800 text-sm font-semibold px-3 py-1 rounded-full">
+                                            <i class="fas fa-${statusIcon} mr-1"></i>${statusText}
+                                        </span>
                                     </div>
-                                    <span class="bg-${statusColor}-100 text-${statusColor}-800 text-sm font-semibold px-3 py-1 rounded-full">
-                                        <i class="fas fa-${statusIcon} mr-1"></i>${statusText}
-                                    </span>
-                                </div>
-                                
-                                <div class="grid grid-cols-2 gap-4 mb-6">
-                                    <div>
-                                        <p class="text-sm text-gray-500">Locataire</p>
-                                        <p class="font-semibold">${prop.tenant_name || 'Non renseigné'}</p>
+                                    
+                                    <div class="grid grid-cols-2 gap-4 mb-6">
+                                        <div>
+                                            <p class="text-sm text-gray-500">Locataire</p>
+                                            <p class="font-semibold">${prop.tenant_name || 'Non renseigné'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-500">Loyer mensuel</p>
+                                            <p class="font-semibold text-blue-600">${(prop.monthly_rent || 0).toLocaleString()} FCFA</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-500">Date de fin</p>
+                                            <p class="font-semibold">${prop.end_date || 'Non définie'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-500">Mois payés</p>
+                                            <p class="font-semibold">${prop.months_paid || 0}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="text-sm text-gray-500">Loyer mensuel</p>
-                                        <p class="font-semibold text-blue-600">${prop.monthly_rent?.toLocaleString() || 0} FCFA</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-500">Date de fin</p>
-                                        <p class="font-semibold">${prop.end_date || 'Non définie'}</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-500">Mois payés</p>
-                                        <p class="font-semibold">${prop.months_paid || 0}</p>
-                                    </div>
-                                </div>
-                                
-                                ${prop.notes ? `
-                                    <div class="mb-6">
-                                        <p class="text-sm text-gray-500">Notes</p>
-                                        <p class="text-gray-700 bg-gray-50 p-3 rounded-lg">${prop.notes}</p>
-                                    </div>
-                                ` : ''}
-                                
-                                <div class="flex gap-2">
-                                    <button onclick="showPaymentModal(${prop.id})" 
-                                            class="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 rounded-lg font-medium">
-                                        <i class="fas fa-money-bill-wave mr-2"></i>Paiement
-                                    </button>
-                                    ${currentUser.role === 'admin' ? `
-                                        <button onclick="editProperty(${prop.id})" 
-                                                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button onclick="deleteProperty(${prop.id})" 
-                                                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                    
+                                    ${prop.notes ? `
+                                        <div class="mb-6">
+                                            <p class="text-sm text-gray-500">Notes</p>
+                                            <p class="text-gray-700 bg-gray-50 p-3 rounded-lg">${prop.notes}</p>
+                                        </div>
                                     ` : ''}
+                                    
+                                    <div class="flex gap-2">
+                                        <button onclick="showPaymentModal(${prop.id})" 
+                                                class="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 rounded-lg font-medium">
+                                            <i class="fas fa-money-bill-wave mr-2"></i>Paiement
+                                        </button>
+                                        ${currentUser.role === 'admin' ? `
+                                            <button onclick="editProperty(${prop.id})" 
+                                                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button onclick="deleteProperty(${prop.id})" 
+                                                    class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }).join('');
+                }
+                
+                // Hide loading, show list
+                document.getElementById('propertiesLoading').classList.add('hidden');
+                document.getElementById('propertiesList').classList.remove('hidden');
                 
             } catch (error) {
-                console.error('Erreur propriétés:', error);
-                showError('Erreur de chargement des logements');
+                console.error('Properties error:', error);
+                
+                // Show error state
+                document.getElementById('propertiesLoading').classList.add('hidden');
+                document.getElementById('propertiesList').classList.add('hidden');
+                document.getElementById('propertiesError').classList.remove('hidden');
+                document.getElementById('propertiesErrorMessage').textContent = error.message || 'Erreur de chargement des logements';
+                
+                if (error.message.includes('Session expirée')) {
+                    setTimeout(() => {
+                        logout();
+                    }, 2000);
+                }
             }
         }
 
@@ -697,15 +932,15 @@
                     </div>
                     
                     <div>
-                        <label class="block text-gray-700 mb-2 font-medium">Nom du locataire *</label>
-                        <input type="text" id="propertyTenant" required 
+                        <label class="block text-gray-700 mb-2 font-medium">Nom du locataire</label>
+                        <input type="text" id="propertyTenant" 
                                class="w-full p-3 border border-gray-300 rounded-lg" 
                                placeholder="Ex: M. Diallo">
                     </div>
                     
                     <div>
                         <label class="block text-gray-700 mb-2 font-medium">Loyer mensuel (FCFA) *</label>
-                        <input type="number" id="propertyRent" required min="0" 
+                        <input type="number" id="propertyRent" required min="0" step="1000" 
                                class="w-full p-3 border border-gray-300 rounded-lg" 
                                placeholder="50000">
                     </div>
@@ -746,7 +981,7 @@
                 name: document.getElementById('propertyName').value,
                 address: document.getElementById('propertyAddress').value,
                 tenant_name: document.getElementById('propertyTenant').value,
-                monthly_rent: parseInt(document.getElementById('propertyRent').value),
+                monthly_rent: parseInt(document.getElementById('propertyRent').value) || 0,
                 start_date: document.getElementById('propertyStartDate').value,
                 notes: document.getElementById('propertyNotes').value
             };
@@ -761,31 +996,124 @@
                     body: JSON.stringify(property)
                 });
                 
-                if (!response.ok) throw new Error('Erreur de création');
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erreur de création');
+                }
                 
                 hideModal('addPropertyModal');
-                showSuccess('Logement créé avec succès');
+                showNotification('Logement créé avec succès', 'success');
                 loadProperties();
                 loadDashboard();
                 
             } catch (error) {
-                showError('Erreur lors de la création du logement');
+                console.error('Save property error:', error);
+                showNotification(error.message, 'error');
             }
         }
 
-        function showPaymentModal(propertyId) {
-            // À implémenter avec des données réelles
-            document.getElementById('paymentForm').innerHTML = `
-                <p class="mb-4">Cette fonctionnalité sera implémentée avec la connexion à l'API</p>
-                <div class="flex justify-end">
-                    <button onclick="hideModal('paymentModal')" 
-                            class="px-6 py-2 border border-gray-300 rounded-lg">
-                        Fermer
-                    </button>
-                </div>
-            `;
+        async function showPaymentModal(propertyId) {
+            try {
+                // Récupérer les informations du logement
+                const response = await fetch(`${API_BASE}/api/properties/${propertyId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur de chargement du logement');
+                }
+                
+                const property = await response.json();
+                
+                document.getElementById('paymentFormContent').innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="font-semibold">${property.name}</p>
+                            <p class="text-sm text-gray-600">${property.tenant_name || 'Locataire non renseigné'}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2 font-medium">Nombre de mois payés *</label>
+                            <input type="number" id="paymentMonths" required min="1" max="24" value="1" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2 font-medium">Notes (optionnel)</label>
+                            <textarea id="paymentNotes" rows="3" 
+                                      class="w-full p-3 border border-gray-300 rounded-lg" 
+                                      placeholder="Détails du paiement..."></textarea>
+                        </div>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Montant total estimé :</p>
+                            <p class="text-2xl font-bold text-green-600" id="estimatedAmount">${(property.monthly_rent || 0).toLocaleString()} FCFA</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-4 mt-8 pt-6 border-t">
+                        <button type="button" onclick="hideModal('paymentModal')" 
+                                class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Annuler
+                        </button>
+                        <button onclick="savePayment(${propertyId})" 
+                                class="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800">
+                            <i class="fas fa-check mr-2"></i>Enregistrer le paiement
+                        </button>
+                    </div>
+                `;
+                
+                // Mettre à jour le montant estimé quand le nombre de mois change
+                document.getElementById('paymentMonths').addEventListener('input', function() {
+                    const months = parseInt(this.value) || 1;
+                    const amount = (property.monthly_rent || 0) * months;
+                    document.getElementById('estimatedAmount').textContent = amount.toLocaleString() + ' FCFA';
+                });
+                
+                showModal('paymentModal');
+                
+            } catch (error) {
+                console.error('Payment modal error:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function savePayment(propertyId) {
+            const months = parseInt(document.getElementById('paymentMonths').value) || 1;
+            const notes = document.getElementById('paymentNotes').value;
             
-            showModal('paymentModal');
+            if (months <= 0) {
+                showNotification('Veuillez entrer un nombre de mois valide', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/properties/${propertyId}/payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ months, notes })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erreur lors du paiement');
+                }
+                
+                hideModal('paymentModal');
+                showNotification('Paiement enregistré avec succès', 'success');
+                loadProperties();
+                loadDashboard();
+                
+            } catch (error) {
+                console.error('Save payment error:', error);
+                showNotification(error.message, 'error');
+            }
         }
 
         async function loadUsers() {
@@ -793,7 +1121,10 @@
             
             try {
                 const response = await fetch(`${API_BASE}/api/users`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 if (!response.ok) throw new Error('Erreur de chargement');
@@ -803,10 +1134,10 @@
                 document.getElementById('usersList').innerHTML = `
                     <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
                         <div class="p-6 border-b">
-                            <div class="flex justify-between items-center">
+                            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                                 <h2 class="text-xl font-semibold">Équipe (${users.length} membres)</h2>
                                 <button onclick="showAddUserModal()" 
-                                        class="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg">
+                                        class="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg whitespace-nowrap">
                                     <i class="fas fa-user-plus mr-2"></i>Nouveau membre
                                 </button>
                             </div>
@@ -853,86 +1184,375 @@
                 `;
                 
             } catch (error) {
-                console.error('Erreur utilisateurs:', error);
-                showError('Erreur de chargement des utilisateurs');
+                console.error('Users error:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        function showAddUserModal() {
+            document.getElementById('addUserForm').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Nom complet *</label>
+                        <input type="text" id="userFullName" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                               placeholder="Ex: Jean Dupont">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Email *</label>
+                        <input type="email" id="userEmail" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                               placeholder="exemple@entreprise-cfa.com">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Rôle *</label>
+                        <select id="userRoleSelect" class="w-full p-3 border border-gray-300 rounded-lg">
+                            <option value="associe">Associé</option>
+                            <option value="admin">Administrateur</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Téléphone</label>
+                        <input type="tel" id="userPhone" 
+                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                               placeholder="+225 01 23 45 67 89">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Mot de passe *</label>
+                        <input type="password" id="userPassword" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                               placeholder="••••••••">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-4 mt-8 pt-6 border-t">
+                    <button type="button" onclick="hideModal('addUserModal')" 
+                            class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Annuler
+                    </button>
+                    <button type="submit" 
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800">
+                        <i class="fas fa-save mr-2"></i>Enregistrer
+                    </button>
+                </div>
+            `;
+            
+            showModal('addUserModal');
+        }
+
+        async function saveUser(event) {
+            event.preventDefault();
+            
+            const user = {
+                full_name: document.getElementById('userFullName').value,
+                email: document.getElementById('userEmail').value,
+                role: document.getElementById('userRoleSelect').value,
+                phone: document.getElementById('userPhone').value,
+                password: document.getElementById('userPassword').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(user)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erreur de création');
+                }
+                
+                hideModal('addUserModal');
+                showNotification('Utilisateur créé avec succès', 'success');
+                loadUsers();
+                
+            } catch (error) {
+                console.error('Save user error:', error);
+                showNotification(error.message, 'error');
             }
         }
 
         async function loadProfile() {
-            document.getElementById('profileContent').innerHTML = `
-                <div class="space-y-6">
-                    <div class="flex items-center mb-8">
-                        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mr-6">
-                            <i class="fas fa-user text-blue-600 text-3xl"></i>
+            try {
+                document.getElementById('profileContent').innerHTML = `
+                    <div class="space-y-6">
+                        <div class="flex items-center mb-8">
+                            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mr-6">
+                                <i class="fas fa-user text-blue-600 text-3xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800">${currentUser.full_name || 'Utilisateur'}</h3>
+                                <p class="text-gray-600">${currentUser.email || ''}</p>
+                                <p class="text-sm mt-1">
+                                    <span class="px-3 py-1 rounded-full ${
+                                        currentUser.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                                    }">
+                                        ${currentUser.role === 'admin' ? 'Administrateur' : 'Associé'}
+                                    </span>
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="text-2xl font-bold text-gray-800">${currentUser.full_name}</h3>
-                            <p class="text-gray-600">${currentUser.email}</p>
-                            <p class="text-sm mt-1">
-                                <span class="px-3 py-1 rounded-full ${
-                                    currentUser.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                                }">
-                                    ${currentUser.role === 'admin' ? 'Administrateur' : 'Associé'}
-                                </span>
-                            </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800 mb-4">Informations personnelles</h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-gray-600 text-sm mb-1">Nom complet</label>
+                                        <input type="text" id="profileName" value="${currentUser.full_name || ''}" 
+                                               class="w-full p-3 border border-gray-300 rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-600 text-sm mb-1">Email</label>
+                                        <input type="email" value="${currentUser.email || ''}" disabled 
+                                               class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-600 text-sm mb-1">Téléphone</label>
+                                        <input type="tel" id="profilePhone" placeholder="+225..." 
+                                               class="w-full p-3 border border-gray-300 rounded-lg">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800 mb-4">Sécurité</h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-gray-600 text-sm mb-1">Mot de passe actuel</label>
+                                        <input type="password" id="currentPassword" 
+                                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                                               placeholder="••••••••">
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-600 text-sm mb-1">Nouveau mot de passe</label>
+                                        <input type="password" id="newPassword" 
+                                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                                               placeholder="••••••••">
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-600 text-sm mb-1">Confirmer le nouveau mot de passe</label>
+                                        <input type="password" id="confirmPassword" 
+                                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                                               placeholder="••••••••">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-6 border-t">
+                            <button onclick="updateProfile()" 
+                                    class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800">
+                                <i class="fas fa-save mr-2"></i>Enregistrer les modifications
+                            </button>
                         </div>
                     </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                `;
+                
+            } catch (error) {
+                console.error('Profile error:', error);
+                showNotification('Erreur de chargement du profil', 'error');
+            }
+        }
+
+        async function updateProfile() {
+            const full_name = document.getElementById('profileName').value;
+            const phone = document.getElementById('profilePhone').value;
+            const current_password = document.getElementById('currentPassword').value;
+            const new_password = document.getElementById('newPassword').value;
+            const confirm_password = document.getElementById('confirmPassword').value;
+            
+            if (new_password && new_password !== confirm_password) {
+                showNotification('Les mots de passe ne correspondent pas', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        full_name,
+                        phone,
+                        current_password,
+                        new_password
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erreur de mise à jour');
+                }
+                
+                // Mettre à jour l'utilisateur local
+                currentUser.full_name = full_name;
+                currentUser.phone = phone;
+                
+                // Mettre à jour l'interface
+                document.getElementById('userName').textContent = full_name;
+                
+                showNotification('Profil mis à jour avec succès', 'success');
+                loadProfile();
+                
+            } catch (error) {
+                console.error('Update profile error:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/api/settings`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erreur de chargement');
+                
+                const settings = await response.json();
+                
+                document.getElementById('settingsContent').innerHTML = `
+                    <div class="space-y-6">
                         <div>
-                            <h4 class="text-lg font-semibold text-gray-800 mb-4">Informations personnelles</h4>
+                            <h4 class="text-lg font-semibold text-gray-800 mb-4">Notifications</h4>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-gray-600 text-sm mb-1">Nom complet</label>
-                                    <input type="text" id="profileName" value="${currentUser.full_name}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="emailNotifications" ${settings.email_notifications ? 'checked' : ''} 
+                                               class="mr-2 h-5 w-5 text-blue-600 rounded">
+                                        <span>Notifications par email</span>
+                                    </label>
                                 </div>
+                                
                                 <div>
-                                    <label class="block text-gray-600 text-sm mb-1">Email</label>
-                                    <input type="email" value="${currentUser.email}" disabled 
-                                           class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="appNotifications" ${settings.app_notifications ? 'checked' : ''} 
+                                               class="mr-2 h-5 w-5 text-blue-600 rounded">
+                                        <span>Notifications dans l'application</span>
+                                    </label>
                                 </div>
+                                
                                 <div>
-                                    <label class="block text-gray-600 text-sm mb-1">Téléphone</label>
-                                    <input type="tel" id="profilePhone" placeholder="+225..." 
-                                           class="w-full p-3 border border-gray-300 rounded-lg">
+                                    <label class="block text-gray-600 text-sm mb-1">Email pour les notifications</label>
+                                    <input type="email" id="notificationEmail" value="${settings.notification_email || ''}" 
+                                           class="w-full p-3 border border-gray-300 rounded-lg" 
+                                           placeholder="notifications@entreprise-cfa.com">
                                 </div>
                             </div>
                         </div>
                         
                         <div>
-                            <h4 class="text-lg font-semibold text-gray-800 mb-4">Sécurité</h4>
+                            <h4 class="text-lg font-semibold text-gray-800 mb-4">Rappels</h4>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-gray-600 text-sm mb-1">Mot de passe actuel</label>
-                                    <input type="password" id="currentPassword" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg" 
-                                           placeholder="••••••••">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-600 text-sm mb-1">Nouveau mot de passe</label>
-                                    <input type="password" id="newPassword" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg" 
-                                           placeholder="••••••••">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-600 text-sm mb-1">Confirmer le nouveau mot de passe</label>
-                                    <input type="password" id="confirmPassword" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg" 
-                                           placeholder="••••••••">
+                                    <label class="block text-gray-600 text-sm mb-1">Jours avant rappel</label>
+                                    <input type="number" id="reminderDays" value="${settings.reminder_days || 7}" min="1" max="30" 
+                                           class="w-full p-3 border border-gray-300 rounded-lg">
+                                    <p class="text-sm text-gray-500 mt-1">Nombre de jours avant échéance pour envoyer un rappel</p>
                                 </div>
                             </div>
                         </div>
+                        
+                        <div class="pt-6 border-t">
+                            <button onclick="updateSettings()" 
+                                    class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800">
+                                <i class="fas fa-save mr-2"></i>Enregistrer les paramètres
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="pt-6 border-t">
-                        <button onclick="updateProfile()" 
-                                class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800">
-                            <i class="fas fa-save mr-2"></i>Enregistrer les modifications
-                        </button>
-                    </div>
-                </div>
-            `;
+                `;
+                
+            } catch (error) {
+                console.error('Settings error:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function updateSettings() {
+            const settings = {
+                reminder_days: parseInt(document.getElementById('reminderDays').value) || 7,
+                email_notifications: document.getElementById('emailNotifications').checked ? 1 : 0,
+                app_notifications: document.getElementById('appNotifications').checked ? 1 : 0,
+                notification_email: document.getElementById('notificationEmail').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erreur de mise à jour');
+                }
+                
+                showNotification('Paramètres mis à jour avec succès', 'success');
+                
+            } catch (error) {
+                console.error('Update settings error:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+
+        async function loadReports() {
+            try {
+                const response = await fetch(`${API_BASE}/api/reports/monthly`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Erreur de chargement');
+                
+                const reports = await response.json();
+                
+                if (reports.length === 0) {
+                    document.getElementById('reportsList').innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-chart-line text-4xl text-gray-300 mb-4"></i>
+                            <p>Aucune donnée de rapport disponible</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('reportsList').innerHTML = reports.map(report => `
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-semibold">${report.month}</h4>
+                                    <p class="text-sm text-gray-600">${report.properties_count} logements</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-green-600">${(report.total_rent || 0).toLocaleString()} FCFA</p>
+                                    <p class="text-sm text-gray-600">Revenu total</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+            } catch (error) {
+                console.error('Reports error:', error);
+                showNotification(error.message, 'error');
+            }
         }
 
         // Fonctions utilitaires
@@ -944,53 +1564,89 @@
             document.getElementById(modalId).classList.add('hidden');
         }
 
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = message;
-            document.getElementById('loginError').classList.remove('hidden');
-        }
-
-        function showSuccess(message) {
-            // À implémenter : notification de succès
-            alert(message);
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            
+            const notification = document.createElement('div');
+            notification.className = `mb-2 p-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+                type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
+                type === 'error' ? 'bg-red-50 border border-red-200 text-red-800' :
+                'bg-blue-50 border border-blue-200 text-blue-800'
+            }`;
+            
+            notification.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex items-start">
+                        <i class="fas ${
+                            type === 'success' ? 'fa-check-circle' :
+                            type === 'error' ? 'fa-exclamation-circle' :
+                            'fa-info-circle'
+                        } mt-1 mr-3"></i>
+                        <div>
+                            <p class="font-medium">${message}</p>
+                        </div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
         }
 
         function checkReminders() {
-            // À implémenter
-            alert('Système de rappels activé. Les notifications seront envoyées selon vos paramètres.');
+            showNotification('Système de rappels activé. Les notifications seront envoyées selon vos paramètres.', 'info');
         }
 
-        // Styles pour les modals
-        const style = document.createElement('style');
-        style.textContent = `
-            .modal {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 1000;
+        // Fonctions de gestion (à implémenter)
+        function editProperty(id) {
+            showNotification('Fonctionnalité à venir', 'info');
+        }
+
+        function deleteProperty(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce logement ?')) {
+                showNotification('Suppression à venir', 'info');
             }
-            .modal-content {
-                background: white;
-                border-radius: 16px;
-                padding: 2rem;
-                max-width: 90%;
-                width: 500px;
-                max-height: 90vh;
-                overflow-y: auto;
+        }
+
+        function editUser(id) {
+            showNotification('Fonctionnalité à venir', 'info');
+        }
+
+        function deleteUser(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+                showNotification('Suppression à venir', 'info');
             }
-            @media (max-width: 640px) {
-                .modal-content {
-                    width: 95%;
-                    padding: 1.5rem;
-                }
+        }
+
+        // API Test Function
+        async function testAPI() {
+            try {
+                const response = await fetch(`${API_BASE}/api/health`);
+                const data = await response.json();
+                console.log('API Health:', data);
+                return data.status === 'OK';
+            } catch (error) {
+                console.error('API Test failed:', error);
+                return false;
             }
-        `;
-        document.head.appendChild(style);
+        }
+
+        // Tester l'API au chargement
+        window.addEventListener('load', async () => {
+            const apiOk = await testAPI();
+            if (!apiOk) {
+                console.warn('API non disponible - mode démo activé');
+            }
+        });
     </script>
 </body>
 </html>
