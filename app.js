@@ -9,8 +9,8 @@ const PORT = process.env.PORT || 3000;
 
 // ✅ IDENTIFIANTS ADMIN (à changer !)
 const ADMIN_USER = {
-  email: "admin@cfa.com",      // ← METTEZ VOTRE EMAIL
-  password: "admin123",        // ← METTEZ VOTRE MOT DE PASSE
+  email: "admin@cfa.com",      // ← CHANGEZ CET EMAIL
+  password: "admin123",        // ← CHANGEZ CE MOT DE PASSE
   name: "Administrateur"
 };
 
