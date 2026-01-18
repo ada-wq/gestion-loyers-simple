@@ -3,34 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion Loyers Simple</title>
+    <title>Gestion Loyers Pro - Entreprise CFA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        .status-up-to-date { background: #d1fae5; }
-        .status-soon-due { background: #fef3c7; }
-        .status-late { background: #fee2e2; }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
         }
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
+        
+        .status-up-to-date { border-left: 4px solid var(--success); }
+        .status-soon-due { border-left: 4px solid var(--warning); }
+        .status-late { border-left: 4px solid var(--danger); }
+        
+        .sidebar-item.active {
+            background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            transition: transform 0.2s ease;
         }
     </style>
 </head>
@@ -38,10 +33,10 @@
     <!-- Login Screen -->
     <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div class="bg-blue-600 p-8 text-white text-center">
-                <i class="fas fa-home text-5xl mb-4"></i>
-                <h1 class="text-3xl font-bold">Gestion Loyers</h1>
-                <p class="text-blue-100 mt-2">Version Simplifiée</p>
+            <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-white text-center">
+                <i class="fas fa-building text-5xl mb-4"></i>
+                <h1 class="text-3xl font-bold">Gestion Loyers Pro</h1>
+                <p class="text-blue-100 mt-2">Entreprise CFA - Accès sécurisé</p>
             </div>
             
             <div class="p-8">
@@ -52,11 +47,11 @@
                 
                 <div class="mb-6">
                     <label class="block text-gray-700 text-sm font-medium mb-2">
-                        <i class="fas fa-user mr-2"></i>Nom d'utilisateur
+                        <i class="fas fa-envelope mr-2"></i>Email professionnel
                     </label>
-                    <input type="text" id="loginUsername" 
-                           class="w-full p-3 border border-gray-300 rounded-lg"
-                           placeholder="admin">
+                    <input type="email" id="loginEmail" 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="votre@entreprise-cfa.com">
                 </div>
                 
                 <div class="mb-8">
@@ -64,324 +59,683 @@
                         <i class="fas fa-lock mr-2"></i>Mot de passe
                     </label>
                     <input type="password" id="loginPassword" 
-                           class="w-full p-3 border border-gray-300 rounded-lg"
-                           placeholder="admin123">
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="••••••••">
                 </div>
                 
                 <button onclick="login()" 
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg font-semibold text-lg">
+                        class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-lg font-semibold text-lg transition duration-300 shadow-lg">
                     <i class="fas fa-sign-in-alt mr-3"></i>Se connecter
                 </button>
                 
                 <div class="mt-6 text-center text-sm text-gray-500">
-                    <p>Identifiants par défaut: admin / admin123</p>
+                    <p>Accès réservé aux membres autorisés de l'entreprise CFA</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Main Application -->
-    <div id="app" class="hidden">
-        <!-- Header -->
-        <header class="bg-white shadow-lg p-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Gestion Loyers</h1>
-                    <p class="text-gray-600">Bienvenue, <span id="userName"></span></p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button onclick="showSection('dashboard')" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-chart-bar text-xl"></i>
-                    </button>
-                    <button onclick="showSection('properties')" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-home text-xl"></i>
-                    </button>
-                    <button onclick="logout()" class="text-red-600 hover:text-red-800">
-                        <i class="fas fa-sign-out-alt text-xl"></i>
-                    </button>
+    <div id="app" class="hidden min-h-screen">
+        <!-- Sidebar -->
+        <div class="fixed inset-y-0 left-0 w-64 bg-white shadow-xl z-50 hidden lg:block">
+            <div class="p-6 border-b">
+                <div class="flex items-center">
+                    <i class="fas fa-building text-3xl text-blue-600 mr-3"></i>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Gestion Loyers</h2>
+                        <p class="text-sm text-gray-500">Entreprise CFA</p>
+                    </div>
                 </div>
             </div>
-        </header>
+            
+            <div class="p-4">
+                <div class="mb-8 p-4 bg-blue-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold" id="userName"></p>
+                            <p class="text-sm text-gray-500" id="userRole"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <nav class="space-y-1">
+                    <a onclick="showSection('dashboard')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
+                        <i class="fas fa-chart-bar w-6 mr-3 text-gray-500"></i>
+                        <span>Tableau de bord</span>
+                    </a>
+                    
+                    <a onclick="showSection('properties')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
+                        <i class="fas fa-home w-6 mr-3 text-gray-500"></i>
+                        <span>Mes logements</span>
+                    </a>
+                    
+                    <a onclick="showSection('payments')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
+                        <i class="fas fa-money-bill-wave w-6 mr-3 text-gray-500"></i>
+                        <span>Paiements</span>
+                    </a>
+                    
+                    <div id="adminMenu" class="hidden">
+                        <a onclick="showSection('users')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <i class="fas fa-users w-6 mr-3 text-gray-500"></i>
+                            <span>Gestion des équipes</span>
+                        </a>
+                        
+                        <a onclick="showSection('settings')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <i class="fas fa-cog w-6 mr-3 text-gray-500"></i>
+                            <span>Paramètres</span>
+                        </a>
+                        
+                        <a onclick="showSection('reports')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <i class="fas fa-chart-pie w-6 mr-3 text-gray-500"></i>
+                            <span>Rapports</span>
+                        </a>
+                    </div>
+                    
+                    <a onclick="showSection('profile')" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer">
+                        <i class="fas fa-user-circle w-6 mr-3 text-gray-500"></i>
+                        <span>Mon profil</span>
+                    </a>
+                    
+                    <a onclick="logout()" class="flex items-center p-3 rounded-lg hover:bg-red-50 text-red-600 cursor-pointer mt-8">
+                        <i class="fas fa-sign-out-alt w-6 mr-3"></i>
+                        <span>Déconnexion</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Mobile Header -->
+        <div class="lg:hidden bg-white shadow-lg p-4">
+            <div class="flex justify-between items-center">
+                <button onclick="toggleMobileMenu()" class="text-gray-600">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <div class="text-center">
+                    <h2 class="font-bold text-gray-800">Gestion Loyers</h2>
+                    <p class="text-xs text-gray-500" id="mobileUserRole"></p>
+                </div>
+                <button onclick="toggleNotifications()" class="text-gray-600 relative">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span id="notificationCount" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                </button>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden mt-4 bg-white rounded-lg shadow-lg p-4">
+                <div class="space-y-2">
+                    <button onclick="showSection('dashboard')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">📊 Tableau de bord</button>
+                    <button onclick="showSection('properties')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">🏠 Mes logements</button>
+                    <button onclick="showSection('payments')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">💰 Paiements</button>
+                    <div id="mobileAdminMenu" class="hidden">
+                        <button onclick="showSection('users')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">👥 Équipe</button>
+                        <button onclick="showSection('settings')" class="w-full text-left p-3 hover:bg-gray-100 rounded-lg">⚙️ Paramètres</button>
+                    </div>
+                    <button onclick="logout()" class="w-full text-left p-3 text-red-600 hover:bg-red-50 rounded-lg mt-4">🚪 Déconnexion</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Main Content -->
-        <main class="p-4">
-            <!-- Dashboard Section -->
-            <div id="dashboardSection">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-xl shadow">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Logements</h3>
-                        <p id="totalProperties" class="text-3xl font-bold text-blue-600">0</p>
+        <div class="lg:ml-64 p-4 lg:p-8">
+            <!-- Notifications -->
+            <div id="notifications" class="hidden mb-6">
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-yellow-400 text-xl"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700" id="notificationMessage"></p>
+                        </div>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Revenu Mensuel</h3>
-                        <p id="totalRent" class="text-3xl font-bold text-green-600">0 FCFA</p>
+                </div>
+            </div>
+
+            <!-- Sections -->
+            <div id="sections">
+                <!-- Dashboard Section -->
+                <div id="dashboardSection" class="section">
+                    <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-8">Tableau de bord</h1>
+                    
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="statsCards"></div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6">Actions rapides</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <button onclick="showAddPropertyModal()" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 rounded-lg text-center">
+                                <i class="fas fa-plus-circle text-2xl mb-2"></i>
+                                <p class="font-semibold">Nouveau logement</p>
+                            </button>
+                            <button onclick="showSection('properties')" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-4 rounded-lg text-center">
+                                <i class="fas fa-home text-2xl mb-2"></i>
+                                <p class="font-semibold">Voir mes logements</p>
+                            </button>
+                            <button onclick="checkReminders()" class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-4 rounded-lg text-center">
+                                <i class="fas fa-bell text-2xl mb-2"></i>
+                                <p class="font-semibold">Vérifier les rappels</p>
+                            </button>
+                        </div>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Actions</h3>
+                    
+                    <!-- Properties Needing Attention -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-semibold text-gray-800">Logements nécessitant attention</h2>
+                            <span id="attentionCount" class="bg-red-500 text-white text-sm font-semibold px-3 py-1 rounded-full">0</span>
+                        </div>
+                        <div id="attentionList"></div>
+                    </div>
+                </div>
+
+                <!-- Properties Section -->
+                <div id="propertiesSection" class="section hidden">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-2xl lg:text-3xl font-bold text-gray-800">Mes logements</h1>
                         <button onclick="showAddPropertyModal()" 
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg w-full">
-                            <i class="fas fa-plus mr-2"></i>Nouveau logement
+                                class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition duration-300">
+                            <i class="fas fa-plus-circle mr-2"></i>Ajouter un logement
                         </button>
                     </div>
+                    
+                    <!-- Filters -->
+                    <div class="bg-white rounded-xl shadow-lg p-4 mb-8">
+                        <div class="flex flex-wrap gap-4 items-center">
+                            <select id="filterStatus" class="border border-gray-300 rounded-lg p-2" onchange="loadProperties()">
+                                <option value="all">Tous les statuts</option>
+                                <option value="up-to-date">À jour</option>
+                                <option value="soon-due">Bientôt dû</option>
+                                <option value="late">En retard</option>
+                            </select>
+                            <input type="text" id="searchProperty" placeholder="Rechercher un logement..." 
+                                   class="border border-gray-300 rounded-lg p-2 flex-grow" onkeyup="loadProperties()">
+                        </div>
+                    </div>
+                    
+                    <!-- Properties List -->
+                    <div id="propertiesList" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4">Derniers logements</h2>
-                    <div id="recentProperties"></div>
+                <!-- Users Section (Admin only) -->
+                <div id="usersSection" class="section hidden">
+                    <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-8">Gestion des équipes</h1>
+                    <div id="usersList"></div>
+                </div>
+
+                <!-- Profile Section -->
+                <div id="profileSection" class="section hidden">
+                    <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 mb-8">Mon profil</h1>
+                    <div id="profileContent" class="bg-white rounded-xl shadow-lg p-6 max-w-2xl"></div>
                 </div>
             </div>
-
-            <!-- Properties Section -->
-            <div id="propertiesSection" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Tous les logements</h2>
-                    <button onclick="showAddPropertyModal()" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
-                        <i class="fas fa-plus mr-2"></i>Ajouter
-                    </button>
-                </div>
-
-                <div id="propertiesList"></div>
-            </div>
-
-            <!-- Users Management (Admin only) -->
-            <div id="usersSection" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Gestion des utilisateurs</h2>
-                    <button onclick="showAddUserModal()" 
-                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
-                        <i class="fas fa-user-plus mr-2"></i>Nouvel utilisateur
-                    </button>
-                </div>
-                <div id="usersList"></div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <div id="addPropertyModal" class="modal">
-        <div class="modal-content">
-            <h3 class="text-2xl font-bold text-gray-800 mb-6">Nouveau logement</h3>
-            <form id="addPropertyForm" onsubmit="saveProperty(event)">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-gray-700 mb-2">Nom du logement *</label>
-                        <input type="text" id="propertyName" required class="w-full p-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2">Adresse</label>
-                        <input type="text" id="propertyAddress" class="w-full p-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2">Locataire *</label>
-                        <input type="text" id="propertyTenant" required class="w-full p-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2">Loyer mensuel (FCFA) *</label>
-                        <input type="number" id="propertyRent" required class="w-full p-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2">Date de début *</label>
-                        <input type="date" id="propertyStartDate" required class="w-full p-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2">Notes</label>
-                        <textarea id="propertyNotes" rows="3" class="w-full p-2 border rounded"></textarea>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-4 mt-8">
-                    <button type="button" onclick="hideModal('addPropertyModal')" class="px-4 py-2 border rounded">
-                        Annuler
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">
-                        Enregistrer
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 
-    <!-- Payment Modal -->
-    <div id="paymentModal" class="modal">
+    <!-- Modals -->
+    <div id="addPropertyModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Nouveau logement</h3>
+            <form id="addPropertyForm" onsubmit="saveProperty(event)"></form>
+        </div>
+    </div>
+
+    <div id="paymentModal" class="modal hidden">
         <div class="modal-content">
             <h3 class="text-2xl font-bold text-gray-800 mb-6">Enregistrer un paiement</h3>
             <div id="paymentForm"></div>
         </div>
     </div>
 
-    <!-- Add User Modal -->
-    <div id="addUserModal" class="modal">
-        <div class="modal-content">
-            <h3 class="text-2xl font-bold text-gray-800 mb-6">Nouvel utilisateur</h3>
-            <form onsubmit="addUser(event)">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-gray-700 mb-2">Nom complet *</label>
-                        <input type="text" id="newUserName" required class="w-full p-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2">Nom d'utilisateur *</label>
-                        <input type="text" id="newUserUsername" required class="w-full p-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2">Mot de passe *</label>
-                        <input type="password" id="newUserPassword" required class="w-full p-2 border rounded">
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="newUserIsAdmin" class="mr-2">
-                            <span>Administrateur</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-4 mt-8">
-                    <button type="button" onclick="hideModal('addUserModal')" class="px-4 py-2 border rounded">
-                        Annuler
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">
-                        Créer
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <script>
+        // Configuration
         const API_BASE = window.location.origin;
         let currentUser = null;
+        let token = null;
 
-        // Login simple
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            // Vérifier si déjà connecté
+            const savedToken = localStorage.getItem('gestion_loyers_token');
+            if (savedToken) {
+                token = savedToken;
+                loadUserProfile();
+            }
+        });
+
+        // Fonctions d'authentification
         async function login() {
-            const username = document.getElementById('loginUsername').value;
+            const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
             
             try {
                 const response = await fetch(`${API_BASE}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ email, password })
                 });
                 
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Identifiants incorrects');
+                    throw new Error(data.error || 'Échec de la connexion');
                 }
                 
+                token = data.token;
                 currentUser = data.user;
                 
-                // Cacher login, afficher app
+                // Sauvegarder le token
+                localStorage.setItem('gestion_loyers_token', token);
+                
+                // Cacher l'écran de login
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
-                document.getElementById('userName').textContent = currentUser.full_name;
                 
-                // Charger le dashboard
-                loadDashboard();
+                // Initialiser l'interface
+                initializeApp();
                 
             } catch (error) {
-                document.getElementById('errorMessage').textContent = error.message;
-                document.getElementById('loginError').classList.remove('hidden');
+                showError(error.message);
             }
         }
 
         function logout() {
-            currentUser = null;
-            document.getElementById('app').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
+            if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+                token = null;
+                currentUser = null;
+                localStorage.removeItem('gestion_loyers_token');
+                document.getElementById('app').classList.add('hidden');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('loginPassword').value = '';
+            }
         }
 
+        async function loadUserProfile() {
+            try {
+                const response = await fetch(`${API_BASE}/api/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Simuler un utilisateur (pour la démo)
+                    currentUser = {
+                        id: 1,
+                        email: 'admin@entreprise-cfa.com',
+                        full_name: 'Administrateur',
+                        role: 'admin'
+                    };
+                    
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    initializeApp();
+                } else {
+                    throw new Error('Session expirée');
+                }
+            } catch (error) {
+                localStorage.removeItem('gestion_loyers_token');
+                showError('Session expirée. Veuillez vous reconnecter.');
+            }
+        }
+
+        function initializeApp() {
+            // Mettre à jour l'interface utilisateur
+            document.getElementById('userName').textContent = currentUser.full_name;
+            document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Administrateur' : 'Associé';
+            document.getElementById('mobileUserRole').textContent = currentUser.role === 'admin' ? 'Administrateur' : 'Associé';
+            
+            // Afficher/masquer les menus admin
+            if (currentUser.role === 'admin') {
+                document.getElementById('adminMenu').classList.remove('hidden');
+                document.getElementById('mobileAdminMenu').classList.remove('hidden');
+            }
+            
+            // Charger le tableau de bord
+            showSection('dashboard');
+            loadDashboard();
+            
+            // Activer l'élément actif du sidebar
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.sidebar-item').forEach(i => {
+                        i.classList.remove('active', 'text-white');
+                        i.querySelector('i').classList.remove('text-white');
+                        i.querySelector('i').classList.add('text-gray-500');
+                    });
+                    this.classList.add('active', 'text-white');
+                    this.querySelector('i').classList.remove('text-gray-500');
+                    this.querySelector('i').classList.add('text-white');
+                });
+            });
+        }
+
+        // Fonctions d'interface
         function showSection(sectionName) {
             // Cacher toutes les sections
-            ['dashboardSection', 'propertiesSection', 'usersSection'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
             });
             
             // Afficher la section demandée
-            document.getElementById(sectionName).classList.remove('hidden');
+            document.getElementById(sectionName + 'Section').classList.remove('hidden');
             
-            // Charger les données
-            if (sectionName === 'dashboardSection') loadDashboard();
-            if (sectionName === 'propertiesSection') loadProperties();
-            if (sectionName === 'usersSection' && currentUser.is_admin) loadUsers();
+            // Charger les données de la section
+            switch(sectionName) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'properties':
+                    loadProperties();
+                    break;
+                case 'users':
+                    if (currentUser.role === 'admin') loadUsers();
+                    break;
+                case 'profile':
+                    loadProfile();
+                    break;
+            }
+            
+            // Cacher le menu mobile
+            document.getElementById('mobileMenu').classList.add('hidden');
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleNotifications() {
+            // À implémenter
         }
 
         async function loadDashboard() {
             try {
-                const auth = btoa(`${currentUser.username}:${currentUser.password}`);
                 const response = await fetch(`${API_BASE}/api/dashboard`, {
-                    headers: { 'Authorization': `Basic ${auth}` }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
+                
+                if (!response.ok) throw new Error('Erreur de chargement');
                 
                 const data = await response.json();
                 
-                document.getElementById('totalProperties').textContent = data.totalProperties;
-                document.getElementById('totalRent').textContent = data.totalMonthlyRent.toLocaleString() + ' FCFA';
-                
-                // Afficher les derniers logements
-                const recent = data.properties.slice(0, 5);
-                document.getElementById('recentProperties').innerHTML = recent.map(prop => `
-                    <div class="border-b py-3">
-                        <div class="flex justify-between">
+                // Mettre à jour les cartes de stats
+                document.getElementById('statsCards').innerHTML = `
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl shadow-lg border border-blue-200 card-hover">
+                        <div class="flex justify-between items-start">
                             <div>
-                                <h4 class="font-semibold">${prop.name}</h4>
-                                <p class="text-sm text-gray-600">${prop.tenant_name}</p>
+                                <div class="text-3xl font-bold text-blue-900">${data.totalProperties}</div>
+                                <div class="text-gray-600 font-medium">Logements</div>
                             </div>
-                            <div class="text-right">
-                                <p class="font-semibold">${prop.monthly_rent?.toLocaleString()} FCFA</p>
-                                <p class="text-sm text-gray-600">${prop.months_paid || 0} mois payés</p>
+                            <div class="text-blue-600 text-3xl">
+                                <i class="fas fa-home"></i>
                             </div>
                         </div>
                     </div>
-                `).join('');
+                    
+                    <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-2xl shadow-lg border border-emerald-200 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="text-3xl font-bold text-emerald-800">${data.totalMonthlyRent.toLocaleString()} FCFA</div>
+                                <div class="text-gray-600 font-medium">Revenu mensuel</div>
+                            </div>
+                            <div class="text-emerald-600 text-3xl">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-2xl shadow-lg border border-amber-200 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="text-3xl font-bold text-amber-700">${data.soonDue}</div>
+                                <div class="text-gray-600 font-medium">Bientôt dû</div>
+                            </div>
+                            <div class="text-amber-600 text-3xl">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-lg border border-red-200 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="text-3xl font-bold text-red-700">${data.late}</div>
+                                <div class="text-gray-600 font-medium">En retard</div>
+                            </div>
+                            <div class="text-red-600 text-3xl">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Logements nécessitant attention
+                const attentionProperties = data.properties.filter(p => p.need_attention);
+                document.getElementById('attentionCount').textContent = attentionProperties.length;
+                
+                if (attentionProperties.length > 0) {
+                    document.getElementById('attentionList').innerHTML = attentionProperties.map(prop => `
+                        <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4 mb-3">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-semibold text-gray-800">${prop.name}</h4>
+                                    <p class="text-sm text-gray-600">${prop.tenant_name || 'Locataire non renseigné'}</p>
+                                    <p class="text-sm mt-2">
+                                        <span class="font-semibold">Date de fin :</span> ${prop.end_date}
+                                        <span class="ml-4 font-semibold">Jours restants :</span> ${prop.days_remaining}
+                                    </p>
+                                </div>
+                                <button onclick="showPaymentModal(${prop.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm">
+                                    <i class="fas fa-money-bill mr-2"></i>Marquer payé
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    document.getElementById('attentionList').innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
+                            <p class="text-lg">Aucun logement ne nécessite d'attention immédiate</p>
+                        </div>
+                    `;
+                }
                 
             } catch (error) {
-                console.error('Erreur:', error);
+                console.error('Erreur dashboard:', error);
+                showError('Erreur de chargement du tableau de bord');
             }
         }
 
         async function loadProperties() {
             try {
-                const auth = btoa(`${currentUser.username}:${currentUser.password}`);
                 const response = await fetch(`${API_BASE}/api/properties`, {
-                    headers: { 'Authorization': `Basic ${auth}` }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
+                
+                if (!response.ok) throw new Error('Erreur de chargement');
                 
                 const properties = await response.json();
                 
-                document.getElementById('propertiesList').innerHTML = properties.map(prop => `
-                    <div class="bg-white rounded-lg shadow p-6 mb-4">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-xl font-bold">${prop.name}</h3>
-                                <p class="text-gray-600">${prop.address}</p>
-                                <p class="mt-2"><strong>Locataire:</strong> ${prop.tenant_name}</p>
-                                <p><strong>Loyer:</strong> ${prop.monthly_rent?.toLocaleString()} FCFA</p>
-                                <p><strong>Mois payés:</strong> ${prop.months_paid || 0}</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="showPaymentModal(${prop.id})" 
-                                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-                                    <i class="fas fa-money-bill mr-1"></i>Paiement
-                                </button>
-                                ${currentUser.is_admin ? `
-                                    <button onclick="deleteProperty(${prop.id})" 
-                                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                // Appliquer les filtres
+                const filterStatus = document.getElementById('filterStatus').value;
+                const searchTerm = document.getElementById('searchProperty').value.toLowerCase();
+                
+                let filteredProperties = properties;
+                
+                if (filterStatus !== 'all') {
+                    filteredProperties = filteredProperties.filter(p => p.status === filterStatus);
+                }
+                
+                if (searchTerm) {
+                    filteredProperties = filteredProperties.filter(p => 
+                        p.name.toLowerCase().includes(searchTerm) || 
+                        p.address?.toLowerCase().includes(searchTerm) ||
+                        p.tenant_name?.toLowerCase().includes(searchTerm)
+                    );
+                }
+                
+                // Afficher les propriétés
+                if (filteredProperties.length === 0) {
+                    document.getElementById('propertiesList').innerHTML = `
+                        <div class="col-span-2 text-center py-12">
+                            <i class="fas fa-home text-4xl text-gray-300 mb-4"></i>
+                            <h3 class="text-xl text-gray-600 mb-2">Aucun logement trouvé</h3>
+                            <p class="text-gray-500">${properties.length === 0 ? 'Commencez par ajouter votre premier logement' : 'Aucun résultat pour votre recherche'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                document.getElementById('propertiesList').innerHTML = filteredProperties.map(prop => {
+                    let statusColor = 'green';
+                    let statusIcon = 'check-circle';
+                    let statusText = 'À jour';
+                    
+                    if (prop.status === 'soon-due') {
+                        statusColor = 'yellow';
+                        statusIcon = 'clock';
+                        statusText = 'Bientôt dû';
+                    } else if (prop.status === 'late') {
+                        statusColor = 'red';
+                        statusIcon = 'exclamation-triangle';
+                        statusText = 'En retard';
+                    }
+                    
+                    return `
+                        <div class="bg-white rounded-xl shadow-lg overflow-hidden border-l-4 border-${statusColor}-500">
+                            <div class="p-6">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800">${prop.name}</h3>
+                                        <p class="text-gray-600 text-sm">${prop.address || 'Adresse non renseignée'}</p>
+                                    </div>
+                                    <span class="bg-${statusColor}-100 text-${statusColor}-800 text-sm font-semibold px-3 py-1 rounded-full">
+                                        <i class="fas fa-${statusIcon} mr-1"></i>${statusText}
+                                    </span>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <div>
+                                        <p class="text-sm text-gray-500">Locataire</p>
+                                        <p class="font-semibold">${prop.tenant_name || 'Non renseigné'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Loyer mensuel</p>
+                                        <p class="font-semibold text-blue-600">${prop.monthly_rent?.toLocaleString() || 0} FCFA</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Date de fin</p>
+                                        <p class="font-semibold">${prop.end_date || 'Non définie'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Mois payés</p>
+                                        <p class="font-semibold">${prop.months_paid || 0}</p>
+                                    </div>
+                                </div>
+                                
+                                ${prop.notes ? `
+                                    <div class="mb-6">
+                                        <p class="text-sm text-gray-500">Notes</p>
+                                        <p class="text-gray-700 bg-gray-50 p-3 rounded-lg">${prop.notes}</p>
+                                    </div>
                                 ` : ''}
+                                
+                                <div class="flex gap-2">
+                                    <button onclick="showPaymentModal(${prop.id})" 
+                                            class="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 rounded-lg font-medium">
+                                        <i class="fas fa-money-bill-wave mr-2"></i>Paiement
+                                    </button>
+                                    ${currentUser.role === 'admin' ? `
+                                        <button onclick="editProperty(${prop.id})" 
+                                                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteProperty(${prop.id})" 
+                                                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
                 
             } catch (error) {
-                console.error('Erreur:', error);
+                console.error('Erreur propriétés:', error);
+                showError('Erreur de chargement des logements');
             }
         }
 
         function showAddPropertyModal() {
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('propertyStartDate').value = today;
+            
+            document.getElementById('addPropertyForm').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Nom du logement *</label>
+                        <input type="text" id="propertyName" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                               placeholder="Ex: Villa Les Palmiers">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Adresse complète</label>
+                        <input type="text" id="propertyAddress" 
+                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                               placeholder="Ex: 123 Rue du Commerce, Quartier...">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Nom du locataire *</label>
+                        <input type="text" id="propertyTenant" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                               placeholder="Ex: M. Diallo">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Loyer mensuel (FCFA) *</label>
+                        <input type="number" id="propertyRent" required min="0" 
+                               class="w-full p-3 border border-gray-300 rounded-lg" 
+                               placeholder="50000">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Date de début *</label>
+                        <input type="date" id="propertyStartDate" required value="${today}" 
+                               class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-2 font-medium">Notes (optionnel)</label>
+                        <textarea id="propertyNotes" rows="3" 
+                                  class="w-full p-3 border border-gray-300 rounded-lg" 
+                                  placeholder="Informations supplémentaires..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-4 mt-8 pt-6 border-t">
+                    <button type="button" onclick="hideModal('addPropertyModal')" 
+                            class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Annuler
+                    </button>
+                    <button type="submit" 
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800">
+                        <i class="fas fa-save mr-2"></i>Enregistrer
+                    </button>
+                </div>
+            `;
+            
             showModal('addPropertyModal');
         }
 
@@ -398,189 +752,245 @@
             };
             
             try {
-                const auth = btoa(`${currentUser.username}:${currentUser.password}`);
                 const response = await fetch(`${API_BASE}/api/properties`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Basic ${auth}`,
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(property)
                 });
                 
-                if (response.ok) {
-                    hideModal('addPropertyModal');
-                    alert('Logement créé avec succès!');
-                    loadDashboard();
-                    showSection('propertiesSection');
-                }
+                if (!response.ok) throw new Error('Erreur de création');
+                
+                hideModal('addPropertyModal');
+                showSuccess('Logement créé avec succès');
+                loadProperties();
+                loadDashboard();
                 
             } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors de la création');
+                showError('Erreur lors de la création du logement');
             }
         }
 
         function showPaymentModal(propertyId) {
+            // À implémenter avec des données réelles
             document.getElementById('paymentForm').innerHTML = `
-                <form onsubmit="recordPayment(event, ${propertyId})">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">Nombre de mois payés</label>
-                        <input type="number" id="paymentMonths" min="1" max="12" required 
-                               class="w-full p-2 border rounded" value="1">
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-gray-700 mb-2">Notes (optionnel)</label>
-                        <textarea id="paymentNotes" rows="3" class="w-full p-2 border rounded"></textarea>
-                    </div>
-                    <div class="flex justify-end gap-4">
-                        <button type="button" onclick="hideModal('paymentModal')" class="px-4 py-2 border rounded">
-                            Annuler
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">
-                            Enregistrer
-                        </button>
-                    </div>
-                </form>
+                <p class="mb-4">Cette fonctionnalité sera implémentée avec la connexion à l'API</p>
+                <div class="flex justify-end">
+                    <button onclick="hideModal('paymentModal')" 
+                            class="px-6 py-2 border border-gray-300 rounded-lg">
+                        Fermer
+                    </button>
+                </div>
             `;
+            
             showModal('paymentModal');
         }
 
-        async function recordPayment(event, propertyId) {
-            event.preventDefault();
-            
-            const months = parseInt(document.getElementById('paymentMonths').value);
-            const notes = document.getElementById('paymentNotes').value;
-            
-            try {
-                const auth = btoa(`${currentUser.username}:${currentUser.password}`);
-                const response = await fetch(`${API_BASE}/api/properties/${propertyId}/payment`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Basic ${auth}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ months, notes })
-                });
-                
-                if (response.ok) {
-                    hideModal('paymentModal');
-                    alert('Paiement enregistré avec succès!');
-                    loadProperties();
-                    loadDashboard();
-                }
-                
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors de l\'enregistrement');
-            }
-        }
-
-        async function deleteProperty(propertyId) {
-            if (!confirm('Supprimer ce logement ?')) return;
-            
-            try {
-                const auth = btoa(`${currentUser.username}:${currentUser.password}`);
-                const response = await fetch(`${API_BASE}/api/properties/${propertyId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Basic ${auth}` }
-                });
-                
-                if (response.ok) {
-                    alert('Logement supprimé');
-                    loadProperties();
-                    loadDashboard();
-                }
-                
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors de la suppression');
-            }
-        }
-
-        // Gestion des utilisateurs (admin seulement)
         async function loadUsers() {
-            if (!currentUser.is_admin) return;
+            if (currentUser.role !== 'admin') return;
             
             try {
-                const auth = btoa(`${currentUser.username}:${currentUser.password}`);
                 const response = await fetch(`${API_BASE}/api/users`, {
-                    headers: { 'Authorization': `Basic ${auth}` }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
+                
+                if (!response.ok) throw new Error('Erreur de chargement');
                 
                 const users = await response.json();
                 
-                document.getElementById('usersList').innerHTML = users.map(user => `
-                    <div class="bg-white rounded-lg shadow p-4 mb-3">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4 class="font-semibold">${user.full_name}</h4>
-                                <p class="text-gray-600">${user.username}</p>
-                                <span class="text-sm px-2 py-1 rounded ${user.is_admin ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}">
-                                    ${user.is_admin ? 'Admin' : 'Utilisateur'}
+                document.getElementById('usersList').innerHTML = `
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+                        <div class="p-6 border-b">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-xl font-semibold">Équipe (${users.length} membres)</h2>
+                                <button onclick="showAddUserModal()" 
+                                        class="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg">
+                                    <i class="fas fa-user-plus mr-2"></i>Nouveau membre
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="p-4 text-left">Nom</th>
+                                        <th class="p-4 text-left">Email</th>
+                                        <th class="p-4 text-left">Rôle</th>
+                                        <th class="p-4 text-left">Date d'inscription</th>
+                                        <th class="p-4 text-left">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${users.map(user => `
+                                        <tr class="border-t hover:bg-gray-50">
+                                            <td class="p-4">${user.full_name}</td>
+                                            <td class="p-4">${user.email}</td>
+                                            <td class="p-4">
+                                                <span class="px-3 py-1 rounded-full text-sm ${
+                                                    user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                                                }">
+                                                    ${user.role === 'admin' ? 'Administrateur' : 'Associé'}
+                                                </span>
+                                            </td>
+                                            <td class="p-4">${new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
+                                            <td class="p-4">
+                                                <button onclick="editUser(${user.id})" class="text-blue-600 hover:text-blue-800 mr-3">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button onclick="deleteUser(${user.id})" class="text-red-600 hover:text-red-800">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Erreur utilisateurs:', error);
+                showError('Erreur de chargement des utilisateurs');
+            }
+        }
+
+        async function loadProfile() {
+            document.getElementById('profileContent').innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex items-center mb-8">
+                        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mr-6">
+                            <i class="fas fa-user text-blue-600 text-3xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800">${currentUser.full_name}</h3>
+                            <p class="text-gray-600">${currentUser.email}</p>
+                            <p class="text-sm mt-1">
+                                <span class="px-3 py-1 rounded-full ${
+                                    currentUser.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                                }">
+                                    ${currentUser.role === 'admin' ? 'Administrateur' : 'Associé'}
                                 </span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-800 mb-4">Informations personnelles</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-600 text-sm mb-1">Nom complet</label>
+                                    <input type="text" id="profileName" value="${currentUser.full_name}" 
+                                           class="w-full p-3 border border-gray-300 rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 text-sm mb-1">Email</label>
+                                    <input type="email" value="${currentUser.email}" disabled 
+                                           class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 text-sm mb-1">Téléphone</label>
+                                    <input type="tel" id="profilePhone" placeholder="+225..." 
+                                           class="w-full p-3 border border-gray-300 rounded-lg">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-800 mb-4">Sécurité</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-gray-600 text-sm mb-1">Mot de passe actuel</label>
+                                    <input type="password" id="currentPassword" 
+                                           class="w-full p-3 border border-gray-300 rounded-lg" 
+                                           placeholder="••••••••">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 text-sm mb-1">Nouveau mot de passe</label>
+                                    <input type="password" id="newPassword" 
+                                           class="w-full p-3 border border-gray-300 rounded-lg" 
+                                           placeholder="••••••••">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 text-sm mb-1">Confirmer le nouveau mot de passe</label>
+                                    <input type="password" id="confirmPassword" 
+                                           class="w-full p-3 border border-gray-300 rounded-lg" 
+                                           placeholder="••••••••">
+                                </div>
                             </div>
                         </div>
                     </div>
-                `).join('');
-                
-            } catch (error) {
-                console.error('Erreur:', error);
-            }
-        }
-
-        function showAddUserModal() {
-            showModal('addUserModal');
-        }
-
-        async function addUser(event) {
-            event.preventDefault();
-            
-            const user = {
-                full_name: document.getElementById('newUserName').value,
-                username: document.getElementById('newUserUsername').value,
-                password: document.getElementById('newUserPassword').value,
-                is_admin: document.getElementById('newUserIsAdmin').checked
-            };
-            
-            try {
-                const auth = btoa(`${currentUser.username}:${currentUser.password}`);
-                const response = await fetch(`${API_BASE}/api/users`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Basic ${auth}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(user)
-                });
-                
-                if (response.ok) {
-                    hideModal('addUserModal');
-                    alert('Utilisateur créé avec succès!');
-                    loadUsers();
-                }
-                
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors de la création');
-            }
+                    
+                    <div class="pt-6 border-t">
+                        <button onclick="updateProfile()" 
+                                class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800">
+                            <i class="fas fa-save mr-2"></i>Enregistrer les modifications
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
         // Fonctions utilitaires
         function showModal(modalId) {
-            document.getElementById(modalId).style.display = 'flex';
+            document.getElementById(modalId).classList.remove('hidden');
         }
 
         function hideModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
+            document.getElementById(modalId).classList.add('hidden');
         }
 
-        // Auto-login pour test
-        window.addEventListener('load', () => {
-            // Pré-remplir pour test
-            document.getElementById('loginUsername').value = 'admin';
-            document.getElementById('loginPassword').value = 'admin123';
-        });
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('loginError').classList.remove('hidden');
+        }
+
+        function showSuccess(message) {
+            // À implémenter : notification de succès
+            alert(message);
+        }
+
+        function checkReminders() {
+            // À implémenter
+            alert('Système de rappels activé. Les notifications seront envoyées selon vos paramètres.');
+        }
+
+        // Styles pour les modals
+        const style = document.createElement('style');
+        style.textContent = `
+            .modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+            .modal-content {
+                background: white;
+                border-radius: 16px;
+                padding: 2rem;
+                max-width: 90%;
+                width: 500px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            @media (max-width: 640px) {
+                .modal-content {
+                    width: 95%;
+                    padding: 1.5rem;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
