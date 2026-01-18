@@ -1,745 +1,433 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { format, addMonths, differenceInDays } = require('date-fns');
+const session = require('express-session');
 const path = require('path');
-const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key_2026_prod";
 
-// Configuration email
-const emailConfig = {
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'test@example.com',
-    pass: process.env.EMAIL_PASS || 'password'
-  }
-};
-
-const transporter = nodemailer.createTransport(emailConfig);
-
-// Middleware
+// Configuration de base
 app.use(express.json());
-app.use(express.static('.'));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname)));
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
 
-// Enable CORS
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
-const db = new sqlite3.Database('database.sqlite');
+// Base de données SQLite
+const db = new sqlite3.Database(':memory:');
 
 // Initialisation de la base de données
 db.serialize(() => {
-  // Table utilisateurs
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE,
-    password TEXT,
-    full_name TEXT,
-    role TEXT DEFAULT 'associe',
-    phone TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  // Table logements
-  db.run(`CREATE TABLE IF NOT EXISTS properties (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    address TEXT,
-    tenant_name TEXT,
-    monthly_rent INTEGER NOT NULL,
-    start_date DATE NOT NULL,
-    months_paid INTEGER DEFAULT 0,
-    notes TEXT,
-    user_id INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )`);
-
-  // Table paramètres
-  db.run(`CREATE TABLE IF NOT EXISTS settings (
-    id INTEGER PRIMARY KEY,
-    reminder_days INTEGER DEFAULT 7,
-    email_notifications INTEGER DEFAULT 1,
-    app_notifications INTEGER DEFAULT 1,
-    notification_email TEXT,
-    timezone TEXT DEFAULT 'Africa/Abidjan',
-    created_by INTEGER
-  )`);
-
-  // Table logs d'activité
-  db.run(`CREATE TABLE IF NOT EXISTS activity_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    action TEXT,
-    details TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  // Créer un admin par défaut si aucun utilisateur
-  db.get("SELECT COUNT(*) AS c FROM users", (err, r) => {
-    if (err) {
-      console.error("Erreur vérification users:", err);
-      return;
-    }
+    // Table des utilisateurs
+    db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'associe',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
     
-    if (r.c === 0) {
-      const defaultPassword = process.env.ADMIN_PASSWORD || "admin123456";
-      const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
-      const adminEmail = process.env.ADMIN_EMAIL || "admin@entreprise-cfa.com";
-      
-      db.run(
-        "INSERT INTO users (email, password, full_name, role) VALUES (?,?,?,?)",
-        [adminEmail, hashedPassword, "Administrateur Principal", "admin"],
-        function(err) {
-          if (err) {
-            console.error("❌ Erreur création admin:", err);
-          } else {
-            console.log("✅ Compte admin créé avec succès");
-            console.log("📧 Email:", adminEmail);
-            console.log("🔑 Mot de passe:", defaultPassword);
-            
-            // Initialiser les paramètres
-            db.run("INSERT OR IGNORE INTO settings (id, notification_email, created_by) VALUES (1, ?, 1)", 
-                   [adminEmail], function(err) {
-              if (err) console.error("❌ Erreur initialisation settings:", err);
-            });
-          }
+    // Table des logements
+    db.run(`
+        CREATE TABLE IF NOT EXISTS logements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom TEXT NOT NULL,
+            adresse TEXT NOT NULL,
+            locataire TEXT NOT NULL,
+            loyer REAL NOT NULL,
+            date_debut TEXT NOT NULL,
+            mois_payes INTEGER DEFAULT 0,
+            observations TEXT,
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+    `);
+    
+    // Table des paramètres
+    db.run(`
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    `);
+    
+    // Insertion de l'admin par défaut (sera écrasé par les variables d'environnement)
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    
+    bcrypt.hash(adminPassword, 10, (err, hash) => {
+        if (err) {
+            console.error('Erreur de hachage:', err);
+            return;
         }
-      );
-    } else {
-      console.log("✅ Base de données déjà initialisée");
-    }
-  });
+        
+        db.run(
+            'INSERT OR REPLACE INTO users (email, password, role) VALUES (?, ?, ?)',
+            [adminEmail, hash, 'gerant'],
+            (err) => {
+                if (err && !err.message.includes('UNIQUE constraint failed')) {
+                    console.error('Erreur insertion admin:', err);
+                }
+            }
+        );
+    });
+    
+    // Paramètres par défaut
+    db.run(`
+        INSERT OR REPLACE INTO settings (key, value) VALUES 
+        ('jours_rappel', '7'),
+        ('email_notifications', ''),
+        ('rappel_active', 'true')
+    `);
 });
 
 // Middleware d'authentification
-function authenticate(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "Token manquant" });
-  
-  const token = authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Token manquant" });
-  
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      console.error("Token verification error:", err);
-      return res.status(403).json({ error: "Token invalide ou expiré" });
+function requireAuth(req, res, next) {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: 'Non authentifié' });
     }
-    req.user = user;
     next();
-  });
 }
 
-// Middleware admin seulement
-function adminOnly(req, res, next) {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: "Accès réservé aux administrateurs" });
-  }
-  next();
+function requireGerant(req, res, next) {
+    if (!req.session.userId || req.session.role !== 'gerant') {
+        return res.status(403).json({ error: 'Accès réservé au gérant' });
+    }
+    next();
 }
 
-// Log d'activité
-function logActivity(userId, action, details) {
-  db.run(
-    "INSERT INTO activity_logs (user_id, action, details) VALUES (?,?,?)",
-    [userId, action, details],
-    (err) => {
-      if (err) console.error("Erreur log activité:", err);
-    }
-  );
-}
+// Routes API
 
-// 🔐 AUTHENTIFICATION
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email et mot de passe requis" });
-  }
-  
-  db.get("SELECT * FROM users WHERE email = ?", [email], (err, user) => {
-    if (err) {
-      console.error("Erreur DB login:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
+// Connexion
+app.post('/api/login', (req, res) => {
+    const { email, password } = req.body;
     
-    if (!user) {
-      return res.status(401).json({ error: "Email ou mot de passe incorrect" });
-    }
-    
-    if (!bcrypt.compareSync(password, user.password)) {
-      return res.status(401).json({ error: "Email ou mot de passe incorrect" });
-    }
-    
-    const token = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
-        role: user.role, 
-        name: user.full_name 
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-    
-    logActivity(user.id, 'CONNEXION', `Connexion réussie`);
-    
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        role: user.role,
-        phone: user.phone
-      }
-    });
-  });
-});
-
-// 📊 DASHBOARD
-app.get('/api/dashboard', authenticate, (req, res) => {
-  const userId = req.user.id;
-  const role = req.user.role;
-  
-  let query = "SELECT * FROM properties";
-  let params = [];
-  
-  if (role === 'associe') {
-    query += " WHERE user_id = ?";
-    params.push(userId);
-  }
-  
-  db.all(query, params, (err, properties) => {
-    if (err) {
-      console.error("Erreur DB dashboard:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
-    
-    const today = new Date();
-    let stats = {
-      totalProperties: properties.length,
-      totalMonthlyRent: 0,
-      soonDue: 0,
-      late: 0,
-      properties: []
-    };
-    
-    properties.forEach(property => {
-      const monthlyRent = property.monthly_rent || 0;
-      stats.totalMonthlyRent += monthlyRent;
-      
-      const startDate = new Date(property.start_date);
-      const endDate = addMonths(startDate, property.months_paid || 0);
-      const daysRemaining = differenceInDays(endDate, today);
-      
-      let status = 'up-to-date';
-      if (daysRemaining < 0) {
-        status = 'late';
-        stats.late++;
-      } else if (daysRemaining <= 7) {
-        status = 'soon-due';
-        stats.soonDue++;
-      }
-      
-      stats.properties.push({
-        ...property,
-        end_date: format(endDate, 'yyyy-MM-dd'),
-        days_remaining: daysRemaining,
-        status: status,
-        need_attention: daysRemaining <= 7 || daysRemaining < 0
-      });
-    });
-    
-    // Récupérer les paramètres
-    db.get("SELECT reminder_days FROM settings WHERE id = 1", (err, settings) => {
-      if (err) console.error("Erreur récupération settings:", err);
-      stats.reminderDays = settings?.reminder_days || 7;
-      res.json(stats);
-    });
-  });
-});
-
-// 🏠 GESTION DES LOGEMENTS
-app.get('/api/properties', authenticate, (req, res) => {
-  const userId = req.user.id;
-  const role = req.user.role;
-  
-  let query = "SELECT * FROM properties";
-  let params = [];
-  
-  if (role === 'associe') {
-    query += " WHERE user_id = ? ORDER BY created_at DESC";
-    params.push(userId);
-  } else {
-    query += " ORDER BY created_at DESC";
-  }
-  
-  db.all(query, params, (err, properties) => {
-    if (err) {
-      console.error("Erreur DB properties:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
-    
-    const today = new Date();
-    const formattedProperties = properties.map(property => {
-      const startDate = new Date(property.start_date);
-      const endDate = addMonths(startDate, property.months_paid || 0);
-      const daysRemaining = differenceInDays(endDate, today);
-      
-      let status = 'up-to-date';
-      if (daysRemaining < 0) {
-        status = 'late';
-      } else if (daysRemaining <= 7) {
-        status = 'soon-due';
-      }
-      
-      return {
-        ...property,
-        end_date: format(endDate, 'yyyy-MM-dd'),
-        days_remaining: daysRemaining,
-        status: status,
-        need_attention: daysRemaining <= 7 || daysRemaining < 0
-      };
-    });
-    
-    res.json(formattedProperties);
-  });
-});
-
-// CRÉER UN LOGEMENT
-app.post('/api/properties', authenticate, (req, res) => {
-  const { name, address, tenant_name, monthly_rent, start_date, notes } = req.body;
-  const userId = req.user.id;
-  
-  if (!name || !monthly_rent || !start_date) {
-    return res.status(400).json({ error: "Nom, loyer et date de début sont obligatoires" });
-  }
-  
-  db.run(
-    `INSERT INTO properties 
-     (name, address, tenant_name, monthly_rent, start_date, notes, user_id)
-     VALUES (?,?,?,?,?,?,?)`,
-    [name, address || '', tenant_name || '', monthly_rent, start_date, notes || '', userId],
-    function(err) {
-      if (err) {
-        console.error("Erreur création logement:", err);
-        return res.status(500).json({ error: "Erreur création du logement" });
-      }
-      
-      logActivity(userId, 'CREATION_LOGEMENT', `Logement créé: ${name}`);
-      res.json({ success: true, id: this.lastID });
-    }
-  );
-});
-
-// ENREGISTRER UN PAIEMENT
-app.post('/api/properties/:id/payment', authenticate, (req, res) => {
-  const { months, notes } = req.body;
-  const propertyId = req.params.id;
-  const userId = req.user.id;
-  
-  if (!months || months <= 0) {
-    return res.status(400).json({ error: "Nombre de mois valide requis" });
-  }
-  
-  db.run(
-    `UPDATE properties 
-     SET months_paid = months_paid + ?,
-         notes = CASE WHEN notes IS NULL OR notes = '' THEN COALESCE(notes, '') 
-                     ELSE COALESCE(notes, '') || '\n' || ? END
-     WHERE id = ?`,
-    [months, notes || '', propertyId],
-    function(err) {
-      if (err) {
-        console.error("Erreur paiement:", err);
-        return res.status(500).json({ error: "Erreur lors de l'enregistrement du paiement" });
-      }
-      
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "Logement non trouvé" });
-      }
-      
-      logActivity(userId, 'PAIEMENT', `${months} mois payés pour logement #${propertyId}`);
-      
-      // Vérifier si un rappel doit être envoyé
-      checkAndSendReminders(propertyId);
-      
-      res.json({ success: true });
-    }
-  );
-});
-
-// RÉCUPÉRER UN LOGEMENT
-app.get('/api/properties/:id', authenticate, (req, res) => {
-  const propertyId = req.params.id;
-  const userId = req.user.id;
-  const role = req.user.role;
-  
-  let query = "SELECT * FROM properties WHERE id = ?";
-  let params = [propertyId];
-  
-  if (role === 'associe') {
-    query += " AND user_id = ?";
-    params.push(userId);
-  }
-  
-  db.get(query, params, (err, property) => {
-    if (err) {
-      console.error("Erreur récupération logement:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
-    
-    if (!property) {
-      return res.status(404).json({ error: "Logement non trouvé" });
-    }
-    
-    // Calculer la date de fin
-    const startDate = new Date(property.start_date);
-    const endDate = addMonths(startDate, property.months_paid || 0);
-    const today = new Date();
-    const daysRemaining = differenceInDays(endDate, today);
-    
-    let status = 'up-to-date';
-    if (daysRemaining < 0) {
-      status = 'late';
-    } else if (daysRemaining <= 7) {
-      status = 'soon-due';
-    }
-    
-    res.json({
-      ...property,
-      end_date: format(endDate, 'yyyy-MM-dd'),
-      days_remaining: daysRemaining,
-      status: status
-    });
-  });
-});
-
-// SUPPRIMER UN LOGEMENT (Admin seulement)
-app.delete('/api/properties/:id', authenticate, adminOnly, (req, res) => {
-  const propertyId = req.params.id;
-  
-  db.run("DELETE FROM properties WHERE id = ?", [propertyId], function(err) {
-    if (err) {
-      console.error("Erreur suppression logement:", err);
-      return res.status(500).json({ error: "Erreur lors de la suppression" });
-    }
-    
-    if (this.changes === 0) {
-      return res.status(404).json({ error: "Logement non trouvé" });
-    }
-    
-    logActivity(req.user.id, 'SUPPRESSION_LOGEMENT', `Logement #${propertyId} supprimé`);
-    res.json({ success: true });
-  });
-});
-
-// 👥 GESTION DES UTILISATEURS (Admin seulement)
-app.get('/api/users', authenticate, adminOnly, (req, res) => {
-  db.all("SELECT id, email, full_name, role, phone, created_at FROM users ORDER BY role, created_at DESC", 
-    (err, users) => {
-      if (err) {
-        console.error("Erreur DB users:", err);
-        return res.status(500).json({ error: "Erreur serveur" });
-      }
-      res.json(users);
-    }
-  );
-});
-
-// CRÉER UN UTILISATEUR
-app.post('/api/users', authenticate, adminOnly, (req, res) => {
-  const { email, full_name, role, phone, password } = req.body;
-  
-  if (!email || !full_name || !password) {
-    return res.status(400).json({ error: "Email, nom et mot de passe sont obligatoires" });
-  }
-  
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  
-  db.run(
-    `INSERT INTO users (email, password, full_name, role, phone)
-     VALUES (?,?,?,?,?)`,
-    [email, hashedPassword, full_name, role || 'associe', phone || ''],
-    function(err) {
-      if (err) {
-        if (err.message.includes('UNIQUE')) {
-          return res.status(400).json({ error: "Cet email est déjà utilisé" });
-        }
-        console.error("Erreur création utilisateur:", err);
-        return res.status(500).json({ error: "Erreur création utilisateur" });
-      }
-      
-      logActivity(req.user.id, 'CREATION_UTILISATEUR', `Utilisateur créé: ${email}`);
-      res.json({ success: true, id: this.lastID });
-    }
-  );
-});
-
-// ⚙️ PARAMÈTRES
-app.get('/api/settings', authenticate, (req, res) => {
-  db.get("SELECT * FROM settings WHERE id = 1", (err, settings) => {
-    if (err) {
-      console.error("Erreur settings:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
-    res.json(settings || {});
-  });
-});
-
-app.put('/api/settings', authenticate, adminOnly, (req, res) => {
-  const { reminder_days, email_notifications, app_notifications, notification_email, timezone } = req.body;
-  
-  db.run(
-    `INSERT OR REPLACE INTO settings 
-     (id, reminder_days, email_notifications, app_notifications, notification_email, timezone, created_by)
-     VALUES (1, ?, ?, ?, ?, ?, ?)`,
-    [reminder_days || 7, email_notifications || 1, app_notifications || 1, 
-     notification_email || '', timezone || 'Africa/Abidjan', req.user.id],
-    (err) => {
-      if (err) {
-        console.error("Erreur update settings:", err);
-        return res.status(500).json({ error: "Erreur mise à jour des paramètres" });
-      }
-      
-      logActivity(req.user.id, 'MODIFICATION_PARAMETRES', 'Paramètres mis à jour');
-      res.json({ success: true });
-    }
-  );
-});
-
-// 🔔 SYSTÈME DE RAPPELS
-async function checkAndSendReminders(propertyId = null) {
-  db.get("SELECT reminder_days, email_notifications, notification_email FROM settings WHERE id = 1", 
-    async (err, settings) => {
-      if (err || !settings || !settings.email_notifications || !settings.notification_email) {
-        console.log("Rappels désactivés ou paramètres manquants");
-        return;
-      }
-      
-      const reminderDays = settings.reminder_days || 7;
-      const notificationEmail = settings.notification_email;
-      
-      let query = "SELECT p.*, u.email as owner_email FROM properties p LEFT JOIN users u ON p.user_id = u.id";
-      let params = [];
-      
-      if (propertyId) {
-        query += " WHERE p.id = ?";
-        params.push(propertyId);
-      }
-      
-      db.all(query, params, async (err, properties) => {
+    db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
         if (err) {
-          console.error("Erreur rappels:", err);
-          return;
+            return res.status(500).json({ error: 'Erreur serveur' });
         }
         
-        const today = new Date();
-        
-        for (const property of properties) {
-          const startDate = new Date(property.start_date);
-          const endDate = addMonths(startDate, property.months_paid || 0);
-          const daysRemaining = differenceInDays(endDate, today);
-          
-          if (daysRemaining > 0 && daysRemaining <= reminderDays) {
-            await sendReminderEmail(property, endDate, daysRemaining, notificationEmail);
-          }
+        if (!user) {
+            return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
         }
-      });
-    }
-  );
-}
-
-async function sendReminderEmail(property, endDate, daysRemaining, toEmail) {
-  const formattedDate = format(endDate, 'dd/MM/yyyy');
-  
-  const mailOptions = {
-    from: emailConfig.auth.user,
-    to: toEmail,
-    subject: `🔔 Rappel: Logement "${property.name}" arrive à échéance`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Rappel de paiement de loyer</h2>
-        <p>Le logement suivant arrive bientôt à échéance :</p>
         
-        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>🏠 Logement :</strong> ${property.name}</p>
-          <p><strong>📌 Adresse :</strong> ${property.address || 'Non renseignée'}</p>
-          <p><strong>👤 Locataire :</strong> ${property.tenant_name || 'Non renseigné'}</p>
-          <p><strong>💰 Loyer mensuel :</strong> ${(property.monthly_rent || 0).toLocaleString()} FCFA</p>
-          <p><strong>📅 Date de fin :</strong> ${formattedDate}</p>
-          <p><strong>⏳ Jours restants :</strong> ${daysRemaining} jour(s)</p>
-        </div>
-        
-        <p style="color: #dc2626; font-weight: bold;">
-          ⚠️ Pensez à demander le paiement au locataire avant la date d'échéance.
-        </p>
-        
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-          <p style="color: #6b7280; font-size: 14px;">
-            Ce message a été généré automatiquement par le système de gestion de loyers.
-          </p>
-        </div>
-      </div>
-    `
-  };
-  
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Email de rappel envoyé pour ${property.name}`);
-  } catch (error) {
-    console.error("❌ Erreur envoi email:", error);
-  }
-}
-
-// Planifier les vérifications de rappels (toutes les heures)
-setInterval(() => {
-  checkAndSendReminders();
-}, 3600000);
-
-// 📝 ACTIVITÉS
-app.get('/api/activity', authenticate, (req, res) => {
-  const userId = req.user.id;
-  const role = req.user.role;
-  
-  let query = `SELECT a.*, u.full_name, u.email 
-               FROM activity_logs a 
-               LEFT JOIN users u ON a.user_id = u.id`;
-  let params = [];
-  
-  if (role === 'associe') {
-    query += " WHERE a.user_id = ?";
-    params.push(userId);
-  }
-  
-  query += " ORDER BY a.created_at DESC LIMIT 50";
-  
-  db.all(query, params, (err, logs) => {
-    if (err) {
-      console.error("Erreur activités:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
-    res.json(logs);
-  });
+        bcrypt.compare(password, user.password, (err, match) => {
+            if (err || !match) {
+                return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+            }
+            
+            req.session.userId = user.id;
+            req.session.email = user.email;
+            req.session.role = user.role;
+            
+            res.json({
+                success: true,
+                user: {
+                    email: user.email,
+                    role: user.role
+                }
+            });
+        });
+    });
 });
 
-// 📈 RAPPORTS
-app.get('/api/reports/monthly', authenticate, (req, res) => {
-  const userId = req.user.id;
-  const role = req.user.role;
-  
-  let query = `SELECT 
-    strftime('%Y-%m', created_at) as month,
-    COUNT(*) as properties_count,
-    SUM(monthly_rent) as total_rent
-    FROM properties`;
-  let params = [];
-  
-  if (role === 'associe') {
-    query += " WHERE user_id = ?";
-    params.push(userId);
-  }
-  
-  query += " GROUP BY strftime('%Y-%m', created_at) ORDER BY month DESC LIMIT 12";
-  
-  db.all(query, params, (err, report) => {
-    if (err) {
-      console.error("Erreur rapport:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
-    res.json(report || []);
-  });
+// Déconnexion
+app.post('/api/logout', (req, res) => {
+    req.session.destroy();
+    res.json({ success: true });
 });
 
-// ROUTE POUR MODIFIER SON PROFIL
-app.put('/api/profile', authenticate, (req, res) => {
-  const { full_name, phone, current_password, new_password } = req.body;
-  const userId = req.user.id;
-  
-  // Vérifier si l'utilisateur existe
-  db.get("SELECT * FROM users WHERE id = ?", [userId], (err, user) => {
-    if (err || !user) {
-      return res.status(400).json({ error: "Utilisateur non trouvé" });
+// Vérifier la session
+app.get('/api/session', (req, res) => {
+    if (req.session.userId) {
+        res.json({
+            authenticated: true,
+            user: {
+                email: req.session.email,
+                role: req.session.role
+            }
+        });
+    } else {
+        res.json({ authenticated: false });
     }
+});
+
+// CRUD Logements
+app.get('/api/logements', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const role = req.session.role;
     
-    let updates = [];
+    let query = 'SELECT * FROM logements';
     let params = [];
     
-    if (full_name) {
-      updates.push("full_name = ?");
-      params.push(full_name);
+    if (role !== 'gerant') {
+        query += ' WHERE created_by = ?';
+        params.push(userId);
     }
     
-    if (phone !== undefined) {
-      updates.push("phone = ?");
-      params.push(phone || '');
+    db.all(query, params, (err, logements) => {
+        if (err) {
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
+        
+        // Calculer les statuts
+        const logementsAvecStatut = logements.map(logement => {
+            const dateDebut = new Date(logement.date_debut);
+            const dateFin = new Date(dateDebut);
+            dateFin.setMonth(dateFin.getMonth() + logement.mois_payes);
+            
+            const aujourdhui = new Date();
+            const diffJours = Math.ceil((dateFin - aujourdhui) / (1000 * 60 * 60 * 24));
+            
+            let statut = '✅ À jour';
+            if (diffJours < 0) {
+                statut = '❌ En retard';
+            } else if (diffJours <= 7) {
+                statut = '⚠️ Bientôt à échéance';
+            }
+            
+            return {
+                ...logement,
+                date_fin: dateFin.toISOString().split('T')[0],
+                statut,
+                jours_restants: diffJours
+            };
+        });
+        
+        res.json(logementsAvecStatut);
+    });
+});
+
+app.post('/api/logements', requireAuth, (req, res) => {
+    const { nom, adresse, locataire, loyer, date_debut, mois_payes, observations } = req.body;
+    const userId = req.session.userId;
+    
+    db.run(
+        `INSERT INTO logements 
+         (nom, adresse, locataire, loyer, date_debut, mois_payes, observations, created_by) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [nom, adresse, locataire, loyer, date_debut, mois_payes || 0, observations || '', userId],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: 'Erreur création logement' });
+            }
+            
+            res.json({
+                success: true,
+                id: this.lastID
+            });
+        }
+    );
+});
+
+app.put('/api/logements/:id', requireAuth, (req, res) => {
+    const { id } = req.params;
+    const { nom, adresse, locataire, loyer, date_debut, mois_payes, observations } = req.body;
+    const userId = req.session.userId;
+    const role = req.session.role;
+    
+    // Vérifier les permissions
+    let query = 'SELECT * FROM logements WHERE id = ?';
+    let params = [id];
+    
+    if (role !== 'gerant') {
+        query += ' AND created_by = ?';
+        params.push(userId);
     }
     
-    // Gestion du changement de mot de passe
-    if (current_password && new_password) {
-      if (!bcrypt.compareSync(current_password, user.password)) {
-        return res.status(400).json({ error: "Mot de passe actuel incorrect" });
-      }
-      
-      const hashedNewPassword = bcrypt.hashSync(new_password, 10);
-      updates.push("password = ?");
-      params.push(hashedNewPassword);
-    }
+    db.get(query, params, (err, logement) => {
+        if (err || !logement) {
+            return res.status(404).json({ error: 'Logement non trouvé ou accès interdit' });
+        }
+        
+        // Mettre à jour
+        db.run(
+            `UPDATE logements SET 
+             nom = ?, adresse = ?, locataire = ?, loyer = ?, 
+             date_debut = ?, mois_payes = ?, observations = ? 
+             WHERE id = ?`,
+            [nom, adresse, locataire, loyer, date_debut, mois_payes, observations || '', id],
+            (err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Erreur mise à jour' });
+                }
+                res.json({ success: true });
+            }
+        );
+    });
+});
+
+app.delete('/api/logements/:id', requireAuth, (req, res) => {
+    const { id } = req.params;
+    const userId = req.session.userId;
+    const role = req.session.role;
     
-    if (updates.length === 0) {
-      return res.status(400).json({ error: "Aucune modification à apporter" });
-    }
+    let query = 'DELETE FROM logements WHERE id = ?';
+    let params = [id];
     
-    params.push(userId);
-    const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    if (role !== 'gerant') {
+        query += ' AND created_by = ?';
+        params.push(userId);
+    }
     
     db.run(query, params, function(err) {
-      if (err) {
-        console.error("Erreur mise à jour profil:", err);
-        return res.status(500).json({ error: "Erreur mise à jour du profil" });
-      }
-      
-      logActivity(userId, 'MODIFICATION_PROFIL', 'Profil mis à jour');
-      res.json({ success: true });
+        if (err) {
+            return res.status(500).json({ error: 'Erreur suppression' });
+        }
+        
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Logement non trouvé ou accès interdit' });
+        }
+        
+        res.json({ success: true });
     });
-  });
 });
 
-// ROUTE DE SANTÉ
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    service: 'Gestion Loyers Pro API'
-  });
+// Statistiques
+app.get('/api/statistiques', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const role = req.session.role;
+    
+    let query = 'SELECT * FROM logements';
+    let params = [];
+    
+    if (role !== 'gerant') {
+        query += ' WHERE created_by = ?';
+        params.push(userId);
+    }
+    
+    db.all(query, params, (err, logements) => {
+        if (err) {
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
+        
+        let totalLoyer = 0;
+        let bientotEcheance = 0;
+        let enRetard = 0;
+        
+        logements.forEach(logement => {
+            totalLoyer += logement.loyer;
+            
+            const dateDebut = new Date(logement.date_debut);
+            const dateFin = new Date(dateDebut);
+            dateFin.setMonth(dateFin.getMonth() + logement.mois_payes);
+            
+            const aujourdhui = new Date();
+            const diffJours = Math.ceil((dateFin - aujourdhui) / (1000 * 60 * 60 * 24));
+            
+            if (diffJours < 0) {
+                enRetard++;
+            } else if (diffJours <= 7) {
+                bientotEcheance++;
+            }
+        });
+        
+        res.json({
+            total_logements: logements.length,
+            total_loyer: totalLoyer,
+            bientot_echeance: bientotEcheance,
+            en_retard: enRetard
+        });
+    });
 });
 
-// ROUTE SPA
+// Paramètres
+app.get('/api/parametres', requireGerant, (req, res) => {
+    db.all('SELECT * FROM settings', (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
+        
+        const settings = {};
+        rows.forEach(row => {
+            settings[row.key] = row.value;
+        });
+        
+        res.json(settings);
+    });
+});
+
+app.put('/api/parametres', requireGerant, (req, res) => {
+    const { jours_rappel, email_notifications, rappel_active } = req.body;
+    
+    db.run(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?), (?, ?), (?, ?)',
+        ['jours_rappel', jours_rappel, 'email_notifications', email_notifications, 'rappel_active', rappel_active],
+        (err) => {
+            if (err) {
+                return res.status(500).json({ error: 'Erreur mise à jour' });
+            }
+            res.json({ success: true });
+        }
+    );
+});
+
+// Gestion des associés (seulement pour le gérant)
+app.get('/api/associes', requireGerant, (req, res) => {
+    db.all('SELECT id, email, role, created_at FROM users WHERE role = ?', ['associe'], (err, users) => {
+        if (err) {
+            return res.status(500).json({ error: 'Erreur serveur' });
+        }
+        res.json(users);
+    });
+});
+
+app.post('/api/associes', requireGerant, (req, res) => {
+    const { email, password } = req.body;
+    
+    bcrypt.hash(password, 10, (err, hash) => {
+        if (err) {
+            return res.status(500).json({ error: 'Erreur de hachage' });
+        }
+        
+        db.run(
+            'INSERT INTO users (email, password, role) VALUES (?, ?, ?)',
+            [email, hash, 'associe'],
+            function(err) {
+                if (err) {
+                    return res.status(400).json({ error: 'Email déjà utilisé' });
+                }
+                
+                res.json({
+                    success: true,
+                    id: this.lastID
+                });
+            }
+        );
+    });
+});
+
+app.delete('/api/associes/:id', requireGerant, (req, res) => {
+    const { id } = req.params;
+    
+    db.run('DELETE FROM users WHERE id = ? AND role = ?', [id, 'associe'], function(err) {
+        if (err) {
+            return res.status(500).json({ error: 'Erreur suppression' });
+        }
+        
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Associé non trouvé' });
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// Route pour servir l'interface
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Gestion des erreurs
-app.use((err, req, res, next) => {
-  console.error('Erreur serveur:', err);
-  res.status(500).json({ error: 'Erreur interne du serveur' });
-});
-
+// Démarrer le serveur
 app.listen(PORT, () => {
-  console.log(`🚀 Application Gestion Loyers Pro démarrée sur le port ${PORT}`);
-  console.log(`🔗 URL: http://localhost:${PORT}`);
-  console.log(`📧 Email configuré: ${emailConfig.auth.user}`);
-  console.log(`👤 Compte admin par défaut: admin@entreprise-cfa.com / admin123456`);
+    console.log(`Serveur démarré sur le port ${PORT}`);
 });
