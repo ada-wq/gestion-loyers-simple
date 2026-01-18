@@ -1,240 +1,393 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { format, addMonths, differenceInDays } = require('date-fns');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_cfa_2026";
 
-// Middleware CORS pour Render
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// ✅ IDENTIFIANTS ADMIN (à changer !)
+const ADMIN_USER = {
+  email: "admin@cfa.com",      // ← METTEZ VOTRE EMAIL
+  password: "admin123",        // ← METTEZ VOTRE MOT DE PASSE
+  name: "Administrateur"
+};
 
 app.use(express.json());
 app.use(express.static('.'));
 
 const db = new sqlite3.Database('database.sqlite');
 
+// Initialisation
 db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE,
-    password TEXT,
-    role TEXT DEFAULT 'admin'
-  )`);
-
+  // Table des logements
   db.run(`CREATE TABLE IF NOT EXISTS properties (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
+    name TEXT NOT NULL,
     address TEXT,
     tenant_name TEXT,
-    monthly_rent INTEGER,
-    start_date DATE,
+    monthly_rent INTEGER NOT NULL,
+    start_date DATE NOT NULL,
     months_paid INTEGER DEFAULT 0,
     notes TEXT,
-    user_id INTEGER
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Table des paramètres
   db.run(`CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY,
     reminder_days INTEGER DEFAULT 7,
-    reminders_enabled INTEGER DEFAULT 1
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
-  db.get("SELECT COUNT(*) AS c FROM users", (_, r) => {
-    if (r.c === 0) {
-      const hashedPassword = bcrypt.hashSync("admin123", 10);
-      db.run(
-        "INSERT INTO users (email,password,role) VALUES (?,?,?)",
-        ["admin@example.com", hashedPassword, "admin"]
-      );
-      console.log("Compte admin créé : admin@example.com / admin123");
-    }
-  });
+  // Table des paiements (historique)
+  db.run(`CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    property_id INTEGER,
+    months INTEGER,
+    amount INTEGER,
+    payment_date DATE,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
 
-  db.get("SELECT COUNT(*) AS c FROM settings", (_, r) => {
-    if (r.c === 0) {
-      db.run("INSERT INTO settings (id) VALUES (1)");
+  // Initialiser les paramètres
+  db.get("SELECT COUNT(*) as count FROM settings", (err, row) => {
+    if (row.count === 0) {
+      db.run("INSERT INTO settings (id, reminder_days) VALUES (1, 7)");
     }
   });
 });
 
-// AUTH middleware
-function auth(req, res, next) {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.sendStatus(401);
-  jwt.verify(token, JWT_SECRET, (e, u) => {
-    if (e) return res.sendStatus(403);
-    req.user = u;
-    next();
-  });
+// 🟢 SIMPLE AUTHENTIFICATION SESSION
+let adminSession = null;
+
+// Middleware de vérification de session
+function checkSession(req, res, next) {
+  if (!adminSession || adminSession.expires < Date.now()) {
+    return res.status(401).json({ error: "Session expirée" });
+  }
+  next();
 }
 
-// LOGIN
+// 🟢 CONNEXION SIMPLE
 app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
-  console.log("Tentative de connexion pour:", email);
   
-  db.get("SELECT * FROM users WHERE email=?", [email], (err, user) => {
-    if (err) {
-      console.error("Erreur DB:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
+  // Vérification simple
+  if (email === ADMIN_USER.email && password === ADMIN_USER.password) {
+    // Créer une session valide 24h
+    adminSession = {
+      email: ADMIN_USER.email,
+      name: ADMIN_USER.name,
+      expires: Date.now() + (24 * 60 * 60 * 1000) // 24h
+    };
     
-    if (!user) {
-      console.log("Utilisateur non trouvé:", email);
-      return res.status(401).json({ error: "Identifiants invalides" });
-    }
-    
-    const validPassword = bcrypt.compareSync(password, user.password);
-    if (!validPassword) {
-      console.log("Mot de passe incorrect pour:", email);
-      return res.status(401).json({ error: "Identifiants invalides" });
-    }
-    
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "1d" });
-    console.log("Connexion réussie pour:", email);
-    res.json({ token, user: { email: user.email, role: user.role } });
-  });
-});
-
-// DASHBOARD stats
-app.get('/api/dashboard/stats', auth, (_, res) => {
-  db.all("SELECT * FROM properties", [], (err, rows) => {
-    if (err) {
-      console.error("Erreur DB:", err);
-      return res.status(500).json({ error: "Erreur serveur" });
-    }
-    
-    let total = 0, soon = 0, late = 0;
-    const today = new Date();
-
-    rows.forEach(p => {
-      total += p.monthly_rent || 0;
-      const end = addMonths(new Date(p.start_date), p.months_paid || 0);
-      const d = differenceInDays(end, today);
-      if (d < 0) late++;
-      else if (d <= 30) soon++;
-    });
-
     res.json({
-      totalProperties: rows.length,
-      totalMonthlyRent: total,
-      soonDue: soon,
-      late
+      success: true,
+      user: {
+        name: ADMIN_USER.name,
+        email: ADMIN_USER.email
+      }
+    });
+  } else {
+    res.status(401).json({ error: "Identifiants incorrects" });
+  }
+});
+
+// 🟢 DÉCONNEXION
+app.post('/api/logout', (req, res) => {
+  adminSession = null;
+  res.json({ success: true });
+});
+
+// 🟢 VÉRIFIER SESSION
+app.get('/api/check-session', (req, res) => {
+  if (adminSession && adminSession.expires > Date.now()) {
+    res.json({ 
+      loggedIn: true, 
+      user: { name: adminSession.name, email: adminSession.email } 
+    });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+// 📊 DASHBOARD
+app.get('/api/dashboard', checkSession, (req, res) => {
+  db.all("SELECT * FROM properties", [], (err, properties) => {
+    if (err) {
+      console.error("Erreur:", err);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+    
+    const today = new Date();
+    let stats = {
+      totalProperties: 0,
+      totalMonthlyRent: 0,
+      soonDue: 0,
+      late: 0,
+      properties: []
+    };
+    
+    properties.forEach(property => {
+      stats.totalProperties++;
+      stats.totalMonthlyRent += property.monthly_rent || 0;
+      
+      const endDate = addMonths(new Date(property.start_date), property.months_paid || 0);
+      const daysRemaining = differenceInDays(endDate, today);
+      
+      let status = 'up-to-date';
+      if (daysRemaining < 0) {
+        status = 'late';
+        stats.late++;
+      } else if (daysRemaining <= 7) {
+        status = 'soon-due';
+        stats.soonDue++;
+      }
+      
+      stats.properties.push({
+        ...property,
+        end_date: format(endDate, 'yyyy-MM-dd'),
+        days_remaining: daysRemaining,
+        status: status,
+        need_attention: daysRemaining <= 7
+      });
+    });
+    
+    // Récupérer les paramètres de rappel
+    db.get("SELECT reminder_days FROM settings WHERE id = 1", (_, settings) => {
+      stats.reminderDays = settings?.reminder_days || 7;
+      res.json(stats);
     });
   });
 });
 
-// PROPERTIES LIST
-app.get('/api/properties', auth, (_, res) => {
-  const today = new Date();
-  db.all("SELECT * FROM properties", [], (err, rows) => {
+// 🏠 LOGEMENTS
+app.get('/api/properties', checkSession, (req, res) => {
+  db.all("SELECT * FROM properties ORDER BY created_at DESC", [], (err, properties) => {
     if (err) {
-      console.error("Erreur DB:", err);
+      console.error("Erreur:", err);
       return res.status(500).json({ error: "Erreur serveur" });
     }
     
-    res.json(rows.map(p => {
-      const end = addMonths(new Date(p.start_date), p.months_paid || 0);
-      const d = differenceInDays(end, today);
-      let status = "up-to-date";
-      if (d < 0) status = "late";
-      else if (d <= 30) status = "soon-due";
+    const today = new Date();
+    const formattedProperties = properties.map(property => {
+      const endDate = addMonths(new Date(property.start_date), property.months_paid || 0);
+      const daysRemaining = differenceInDays(endDate, today);
+      
+      let status = 'up-to-date';
+      if (daysRemaining < 0) {
+        status = 'late';
+      } else if (daysRemaining <= 7) {
+        status = 'soon-due';
+      }
       
       return {
-        ...p,
-        end_date: format(end, "yyyy-MM-dd"),
+        ...property,
+        end_date: format(endDate, 'yyyy-MM-dd'),
+        days_remaining: daysRemaining,
         status: status
       };
-    }));
+    });
+    
+    res.json(formattedProperties);
   });
 });
 
-// CREATE property
-app.post('/api/properties', auth, (req, res) => {
-  const p = req.body;
-  console.log("Création propriété:", p.name);
+// ➕ CRÉER UN LOGEMENT
+app.post('/api/properties', checkSession, (req, res) => {
+  const { name, address, tenant_name, monthly_rent, start_date, notes } = req.body;
+  
+  if (!name || !monthly_rent || !start_date) {
+    return res.status(400).json({ error: "Nom, loyer et date de début sont requis" });
+  }
   
   db.run(
-    `INSERT INTO properties 
-     (name, address, tenant_name, monthly_rent, start_date, months_paid, notes, user_id)
-     VALUES (?,?,?,?,?,?,?,1)`,
-    [p.name, p.address, p.tenant_name, p.monthly_rent, p.start_date, p.months_paid || 0, p.notes],
+    `INSERT INTO properties (name, address, tenant_name, monthly_rent, start_date, notes)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, address || '', tenant_name || '', monthly_rent, start_date, notes || ''],
     function(err) {
       if (err) {
         console.error("Erreur création:", err);
         return res.status(500).json({ error: "Erreur création" });
       }
-      res.json({ success: true, id: this.lastID });
+      
+      res.json({ 
+        success: true, 
+        id: this.lastID,
+        message: "Logement créé avec succès"
+      });
     }
   );
 });
 
-// PAYMENT
-app.post('/api/properties/:id/payment', auth, (req, res) => {
-  const months = parseInt(req.body.months) || 1;
-  console.log(`Paiement ${months} mois pour propriété ${req.params.id}`);
+// 💰 ENREGISTRER UN PAIEMENT
+app.post('/api/properties/:id/pay', checkSession, (req, res) => {
+  const propertyId = req.params.id;
+  const { months, notes } = req.body;
   
+  if (!months || months <= 0) {
+    return res.status(400).json({ error: "Nombre de mois invalide" });
+  }
+  
+  // 1. Mettre à jour le logement
   db.run(
-    "UPDATE properties SET months_paid = months_paid + ? WHERE id=?",
-    [months, req.params.id],
-    (err) => {
+    "UPDATE properties SET months_paid = months_paid + ? WHERE id = ?",
+    [months, propertyId],
+    function(err) {
       if (err) {
         console.error("Erreur paiement:", err);
-        return res.status(500).json({ error: "Erreur mise à jour" });
+        return res.status(500).json({ error: "Erreur paiement" });
       }
-      res.json({ success: true });
+      
+      // 2. Récupérer le loyer pour l'historique
+      db.get("SELECT monthly_rent FROM properties WHERE id = ?", [propertyId], (err, property) => {
+        if (property) {
+          const amount = property.monthly_rent * months;
+          
+          // 3. Enregistrer dans l'historique
+          db.run(
+            `INSERT INTO payments (property_id, months, amount, payment_date, notes)
+             VALUES (?, ?, ?, DATE('now'), ?)`,
+            [propertyId, months, amount, notes || '']
+          );
+        }
+        
+        res.json({ 
+          success: true,
+          message: `Paiement de ${months} mois enregistré`
+        });
+      });
     }
   );
 });
 
-// SETTINGS
-app.get('/api/settings', auth, (_, res) => {
-  db.get("SELECT * FROM settings WHERE id=1", (err, settings) => {
+// ⚙️ PARAMÈTRES
+app.get('/api/settings', checkSession, (req, res) => {
+  db.get("SELECT * FROM settings WHERE id = 1", (err, settings) => {
     if (err) {
-      console.error("Erreur settings:", err);
+      console.error("Erreur:", err);
       return res.status(500).json({ error: "Erreur serveur" });
     }
-    res.json(settings || { reminder_days: 7, reminders_enabled: 1 });
+    res.json(settings || { reminder_days: 7 });
   });
 });
 
-app.put('/api/settings', auth, (req, res) => {
+app.put('/api/settings', checkSession, (req, res) => {
+  const { reminder_days } = req.body;
+  
   db.run(
-    "UPDATE settings SET reminder_days=?, reminders_enabled=? WHERE id=1",
-    [req.body.reminder_days, req.body.reminders_enabled],
-    (err) => {
+    "UPDATE settings SET reminder_days = ? WHERE id = 1",
+    [reminder_days],
+    function(err) {
       if (err) {
-        console.error("Erreur update settings:", err);
+        console.error("Erreur:", err);
         return res.status(500).json({ error: "Erreur mise à jour" });
       }
-      res.json({ success: true });
+      
+      res.json({ 
+        success: true,
+        message: "Paramètres mis à jour"
+      });
     }
   );
 });
 
-// TEST route
-app.get('/api/test', (req, res) => {
-  res.json({ message: "API fonctionne!", timestamp: new Date().toISOString() });
+// 📅 RAPPELS
+app.get('/api/reminders', checkSession, (req, res) => {
+  db.get("SELECT reminder_days FROM settings WHERE id = 1", (err, settings) => {
+    const reminderDays = settings?.reminder_days || 7;
+    
+    db.all(`
+      SELECT p.*, 
+             DATE(p.start_date, '+' || (p.months_paid * 30) || ' days') as end_date,
+             julianday(DATE(p.start_date, '+' || (p.months_paid * 30) || ' days')) - julianday('now') as days_left
+      FROM properties p
+      WHERE days_left BETWEEN 1 AND ?
+      ORDER BY days_left ASC
+    `, [reminderDays], (err, reminders) => {
+      if (err) {
+        console.error("Erreur:", err);
+        return res.status(500).json({ error: "Erreur serveur" });
+      }
+      
+      res.json(reminders);
+    });
+  });
 });
 
-// SPA route
+// 🗑️ SUPPRIMER UN LOGEMENT
+app.delete('/api/properties/:id', checkSession, (req, res) => {
+  const propertyId = req.params.id;
+  
+  db.run("DELETE FROM properties WHERE id = ?", [propertyId], function(err) {
+    if (err) {
+      console.error("Erreur:", err);
+      return res.status(500).json({ error: "Erreur suppression" });
+    }
+    
+    // Supprimer aussi les paiements associés
+    db.run("DELETE FROM payments WHERE property_id = ?", [propertyId]);
+    
+    res.json({ 
+      success: true,
+      message: "Logement supprimé"
+    });
+  });
+});
+
+// 📊 HISTORIQUE DES PAIEMENTS
+app.get('/api/payments', checkSession, (req, res) => {
+  db.all(`
+    SELECT p.*, pr.name as property_name, pr.tenant_name
+    FROM payments p
+    LEFT JOIN properties pr ON p.property_id = pr.id
+    ORDER BY p.payment_date DESC
+    LIMIT 50
+  `, [], (err, payments) => {
+    if (err) {
+      console.error("Erreur:", err);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+    res.json(payments);
+  });
+});
+
+// 📄 EXPORT DONNÉES
+app.get('/api/export', checkSession, (req, res) => {
+  db.all(`
+    SELECT 
+      p.id,
+      p.name as logement,
+      p.address,
+      p.tenant_name as locataire,
+      p.monthly_rent as loyer_mensuel,
+      p.start_date as date_debut,
+      p.months_paid as mois_payes,
+      DATE(p.start_date, '+' || (p.months_paid * 30) || ' days') as prochaine_echeance,
+      p.notes,
+      p.created_at as date_ajout
+    FROM properties p
+    ORDER BY p.name
+  `, [], (err, data) => {
+    if (err) {
+      console.error("Erreur:", err);
+      return res.status(500).json({ error: "Erreur export" });
+    }
+    res.json(data);
+  });
+});
+
+// ROUTE SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Application prête sur http://localhost:${PORT}`);
-  console.log(`JWT_SECRET configuré: ${JWT_SECRET ? "OUI" : "NON"}`);
+  console.log(`🚀 Application Gestion Loyers démarrée sur le port ${PORT}`);
+  console.log(`🔐 Admin: ${ADMIN_USER.email}`);
+  console.log(`🔑 Mot de passe: ${ADMIN_USER.password}`);
+  console.log(`📧 Changez ces identifiants dans le fichier app.js !`);
 });

@@ -1,476 +1,860 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestion Loyers CFA</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-.late { border-left: 4px solid #ef4444; }
-.soon-due { border-left: 4px solid #f59e0b; }
-.up-to-date { border-left: 4px solid #10b981; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Loyers - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .status-up-to-date { border-left: 4px solid #10b981; }
+        .status-soon-due { border-left: 4px solid #f59e0b; }
+        .status-late { border-left: 4px solid #ef4444; }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
-
 <body class="bg-gray-50">
-
-<div id="login" class="min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-        <i class="fas fa-building text-blue-800 text-2xl"></i>
-      </div>
-      <h1 class="text-3xl font-bold text-blue-900">Gestion Loyers CFA</h1>
-      <p class="text-gray-600 mt-2">Connectez-vous pour gérer vos propriétés</p>
-    </div>
-    
-    <div class="mb-6">
-      <label class="block text-gray-700 text-sm font-medium mb-2">Email</label>
-      <input id="email" type="email" value="admin@example.com" 
-             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-    </div>
-    
-    <div class="mb-8">
-      <label class="block text-gray-700 text-sm font-medium mb-2">Mot de passe</label>
-      <input id="password" type="password" value="admin123" 
-             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-    </div>
-    
-    <button onclick="login()" 
-            class="w-full bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white p-3 rounded-lg font-semibold text-lg transition duration-300 shadow-lg">
-      <i class="fas fa-sign-in-alt mr-2"></i>Connexion
-    </button>
-    
-    <div class="mt-6 text-center text-sm text-gray-500 p-4 bg-blue-50 rounded-lg">
-      <p><strong>Compte par défaut :</strong></p>
-      <p>Email: <code>admin@example.com</code></p>
-      <p>Mot de passe: <code>admin123</code></p>
-    </div>
-  </div>
-</div>
-
-<div id="app" class="hidden min-h-screen p-4">
-  <!-- Header -->
-  <header class="bg-white shadow-lg rounded-2xl p-6 mb-8">
-    <div class="flex flex-col md:flex-row justify-between items-center">
-      <div>
-        <h1 class="text-3xl font-bold text-blue-900">
-          <i class="fas fa-building mr-3"></i>Gestion Loyers CFA
-        </h1>
-        <p class="text-gray-600">Gérez vos propriétés et loyers en FCFA</p>
-      </div>
-      <button onclick="logout()" 
-              class="mt-4 md:mt-0 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium">
-        <i class="fas fa-sign-out-alt mr-2"></i>Déconnexion
-      </button>
-    </div>
-  </header>
-
-  <!-- Dashboard Stats -->
-  <section class="mb-10">
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">
-      <i class="fas fa-chart-bar mr-3"></i>Tableau de Bord
-    </h2>
-    <div id="stats" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div>
-  </section>
-
-  <!-- Actions -->
-  <section class="mb-10">
-    <div class="flex flex-wrap gap-4">
-      <button onclick="showAddModal()" 
-              class="bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition duration-300">
-        <i class="fas fa-plus-circle mr-2"></i>Ajouter une propriété
-      </button>
-      <button onclick="loadSettings()" 
-              class="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg transition duration-300">
-        <i class="fas fa-cog mr-2"></i>Paramètres
-      </button>
-    </div>
-  </section>
-
-  <!-- Properties List -->
-  <section>
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">
-      <i class="fas fa-home mr-3"></i>Mes Propriétés
-    </h2>
-    <div id="properties-list" class="bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div class="p-4 bg-gray-50 border-b text-gray-700 font-medium">
-        <div class="grid grid-cols-4 md:grid-cols-12 gap-4">
-          <div class="col-span-4 md:col-span-3">Propriété</div>
-          <div class="col-span-4 md:col-span-2">Locataire</div>
-          <div class="col-span-4 md:col-span-2">Loyer FCFA</div>
-          <div class="col-span-4 md:col-span-2">Statut</div>
-          <div class="col-span-4 md:col-span-3 text-center">Actions</div>
-        </div>
-      </div>
-      <div id="list"></div>
-    </div>
-  </section>
-
-  <!-- Modals -->
-  <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-      <h3 class="text-2xl font-bold text-blue-900 mb-6">Ajouter une propriété</h3>
-      <div id="addForm" class="space-y-4"></div>
-      <div class="flex justify-end gap-4 mt-8">
-        <button onclick="hideAddModal()" class="px-6 py-2 border border-gray-300 rounded-lg">Annuler</button>
-        <button onclick="saveProperty()" class="px-6 py-2 bg-blue-700 text-white rounded-lg">Enregistrer</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="payModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-8 w-full max-w-md">
-      <h3 class="text-2xl font-bold text-green-700 mb-6">Enregistrer un paiement</h3>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-gray-700 mb-2">Nombre de mois payés</label>
-          <input type="number" id="payMonths" min="1" max="12" value="1" 
-                 class="w-full p-3 border border-gray-300 rounded-lg">
-        </div>
-      </div>
-      <div class="flex justify-end gap-4 mt-8">
-        <button onclick="hidePayModal()" class="px-6 py-2 border border-gray-300 rounded-lg">Annuler</button>
-        <button onclick="processPayment()" class="px-6 py-2 bg-green-600 text-white rounded-lg">Valider le paiement</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-// Configuration
-const API_BASE = window.location.origin;
-let token = "";
-let currentPropertyId = null;
-
-// Fonction login corrigée
-function login() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  
-  // Validation basique
-  if (!email || !password) {
-    alert("Veuillez remplir tous les champs");
-    return;
-  }
-  
-  console.log("Tentative de connexion à:", API_BASE);
-  
-  fetch(`${API_BASE}/api/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify({ email, password })
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    if (data.token) {
-      token = data.token;
-      document.getElementById('login').classList.add('hidden');
-      document.getElementById('app').classList.remove('hidden');
-      loadDashboard();
-    } else {
-      throw new Error(data.error || 'Token manquant');
-    }
-  })
-  .catch(error => {
-    console.error('Erreur de connexion:', error);
-    alert(`Échec de connexion: ${error.message}\n\nVérifiez que vous êtes connecté à Internet et que le serveur fonctionne.`);
-  });
-}
-
-// Fonction logout
-function logout() {
-  token = "";
-  document.getElementById('app').classList.add('hidden');
-  document.getElementById('login').classList.remove('hidden');
-  document.getElementById('password').value = '';
-}
-
-// Charger le dashboard
-function loadDashboard() {
-  // Stats
-  fetch(`${API_BASE}/api/dashboard/stats`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json'
-    }
-  })
-  .then(r => {
-    if (!r.ok) throw new Error(`Erreur ${r.status}`);
-    return r.json();
-  })
-  .then(stats => {
-    document.getElementById('stats').innerHTML = `
-      <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl shadow-lg border border-blue-200">
-        <div class="text-blue-800 mb-2"><i class="fas fa-home text-2xl"></i></div>
-        <div class="text-3xl font-bold text-blue-900">${stats.totalProperties}</div>
-        <div class="text-gray-600 font-medium">Propriétés</div>
-      </div>
-      <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-2xl shadow-lg border border-emerald-200">
-        <div class="text-emerald-700 mb-2"><i class="fas fa-money-bill-wave text-2xl"></i></div>
-        <div class="text-3xl font-bold text-emerald-800">${stats.totalMonthlyRent.toLocaleString()} FCFA</div>
-        <div class="text-gray-600 font-medium">Revenu mensuel</div>
-      </div>
-      <div class="bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-2xl shadow-lg border border-amber-200">
-        <div class="text-amber-600 mb-2"><i class="fas fa-clock text-2xl"></i></div>
-        <div class="text-3xl font-bold text-amber-700">${stats.soonDue}</div>
-        <div class="text-gray-600 font-medium">Bientôt dû</div>
-      </div>
-      <div class="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-lg border border-red-200">
-        <div class="text-red-600 mb-2"><i class="fas fa-exclamation-triangle text-2xl"></i></div>
-        <div class="text-3xl font-bold text-red-700">${stats.late}</div>
-        <div class="text-gray-600 font-medium">En retard</div>
-      </div>
-    `;
-  })
-  .catch(e => {
-    console.error('Erreur stats:', e);
-    document.getElementById('stats').innerHTML = `<div class="col-span-4 p-4 text-center text-red-600">Erreur de chargement</div>`;
-  });
-  
-  // Liste des propriétés
-  loadProperties();
-}
-
-// Charger les propriétés
-function loadProperties() {
-  fetch(`${API_BASE}/api/properties`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json'
-    }
-  })
-  .then(r => {
-    if (!r.ok) throw new Error(`Erreur ${r.status}`);
-    return r.json();
-  })
-  .then(properties => {
-    if (properties.length === 0) {
-      document.getElementById('list').innerHTML = `
-        <div class="p-8 text-center text-gray-500">
-          <i class="fas fa-home text-4xl mb-4 text-gray-300"></i>
-          <p class="text-xl">Aucune propriété enregistrée</p>
-          <p class="mt-2">Commencez par ajouter votre première propriété</p>
-        </div>
-      `;
-      return;
-    }
-    
-    const listHTML = properties.map(prop => {
-      let statusClass = '';
-      let statusText = '';
-      let statusIcon = '';
-      
-      switch(prop.status) {
-        case 'late':
-          statusClass = 'bg-red-100 text-red-800';
-          statusText = 'En retard';
-          statusIcon = 'fa-exclamation-circle';
-          break;
-        case 'soon-due':
-          statusClass = 'bg-amber-100 text-amber-800';
-          statusText = 'Bientôt dû';
-          statusIcon = 'fa-clock';
-          break;
-        default:
-          statusClass = 'bg-emerald-100 text-emerald-800';
-          statusText = 'À jour';
-          statusIcon = 'fa-check-circle';
-      }
-      
-      return `
-        <div class="p-4 border-b hover:bg-gray-50 transition duration-200 ${prop.status}">
-          <div class="grid grid-cols-4 md:grid-cols-12 gap-4 items-center">
-            <div class="col-span-4 md:col-span-3">
-              <div class="font-bold text-lg text-gray-800">${prop.name}</div>
-              <div class="text-sm text-gray-500">${prop.address || 'Adresse non renseignée'}</div>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                    <i class="fas fa-building text-blue-600 text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">Gestion Loyers CFA</h1>
+                <p class="text-gray-600 mt-2">Accès administrateur</p>
             </div>
-            <div class="col-span-4 md:col-span-2 font-medium">${prop.tenant_name}</div>
-            <div class="col-span-4 md:col-span-2">
-              <span class="font-bold text-lg text-blue-800">${prop.monthly_rent.toLocaleString()} FCFA</span>
+            
+            <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span id="errorMessage"></span>
             </div>
-            <div class="col-span-4 md:col-span-2">
-              <span class="px-3 py-1 rounded-full text-sm font-medium ${statusClass}">
-                <i class="fas ${statusIcon} mr-1"></i>${statusText}
-              </span>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-1">
+                        <i class="fas fa-user mr-2"></i>Identifiant admin
+                    </label>
+                    <input type="text" id="loginEmail" 
+                           class="w-full p-3 border border-gray-300 rounded-lg"
+                           placeholder="Votre identifiant">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-1">
+                        <i class="fas fa-lock mr-2"></i>Mot de passe
+                    </label>
+                    <input type="password" id="loginPassword" 
+                           class="w-full p-3 border border-gray-300 rounded-lg"
+                           placeholder="Votre mot de passe">
+                </div>
+                
+                <button onclick="login()" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-semibold mt-6">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Se connecter
+                </button>
+                
+                <div class="text-center text-sm text-gray-500 mt-4">
+                    <p>Accès réservé à l'administrateur principal</p>
+                </div>
             </div>
-            <div class="col-span-4 md:col-span-3 flex flex-wrap gap-2 justify-center">
-              <button onclick="showPaymentModal(${prop.id})" 
-                      class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition duration-200">
-                <i class="fas fa-money-check-dollar mr-2"></i>Payer
-              </button>
-              <button onclick="deleteProperty(${prop.id})" 
-                      class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition duration-200">
-                <i class="fas fa-trash mr-2"></i>Supprimer
-              </button>
-            </div>
-          </div>
         </div>
-      `;
-    }).join('');
-    
-    document.getElementById('list').innerHTML = listHTML;
-  })
-  .catch(e => {
-    console.error('Erreur propriétés:', e);
-    document.getElementById('list').innerHTML = `
-      <div class="p-8 text-center text-red-600">
-        <i class="fas fa-exclamation-triangle text-3xl mb-4"></i>
-        <p>Erreur de chargement des propriétés</p>
-      </div>
-    `;
-  });
-}
-
-// Modal d'ajout
-function showAddModal() {
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('addForm').innerHTML = `
-    <div>
-      <label class="block text-gray-700 mb-2 font-medium">Nom de la propriété *</label>
-      <input type="text" id="propName" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Ex: Villa 123">
     </div>
-    <div>
-      <label class="block text-gray-700 mb-2 font-medium">Adresse</label>
-      <input type="text" id="propAddress" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Ex: Rue 123, Quartier...">
+
+    <!-- Main Application -->
+    <div id="app" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <i class="fas fa-building text-2xl text-blue-600 mr-3"></i>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-800">Gestion Loyers CFA</h1>
+                            <p class="text-sm text-gray-500" id="welcomeMessage"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <button onclick="showReminders()" class="relative text-gray-600 hover:text-blue-600">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span id="reminderCount" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                        </button>
+                        
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-blue-600"></i>
+                            </div>
+                            <button onclick="logout()" class="text-gray-600 hover:text-red-600">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="mt-4 flex space-x-2 overflow-x-auto pb-2">
+                    <button onclick="showSection('dashboard')" class="nav-btn bg-blue-600 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-chart-bar mr-2"></i>Tableau de bord
+                    </button>
+                    <button onclick="showSection('properties')" class="nav-btn bg-gray-200 text-gray-700 hover:bg-gray-300 px-4 py-2 rounded-lg">
+                        <i class="fas fa-home mr-2"></i>Logements
+                    </button>
+                    <button onclick="showSection('payments')" class="nav-btn bg-gray-200 text-gray-700 hover:bg-gray-300 px-4 py-2 rounded-lg">
+                        <i class="fas fa-money-bill-wave mr-2"></i>Paiements
+                    </button>
+                    <button onclick="showSection('settings')" class="nav-btn bg-gray-200 text-gray-700 hover:bg-gray-300 px-4 py-2 rounded-lg">
+                        <i class="fas fa-cog mr-2"></i>Paramètres
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- Dashboard Section -->
+            <div id="dashboardSection" class="section">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="statsCards"></div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Actions rapides</h2>
+                        <div class="space-y-3">
+                            <button onclick="showAddPropertyModal()" class="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg text-center">
+                                <i class="fas fa-plus-circle mr-2"></i>Ajouter un logement
+                            </button>
+                            <button onclick="exportData()" class="w-full bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg text-center">
+                                <i class="fas fa-download mr-2"></i>Exporter les données
+                            </button>
+                            <button onclick="checkReminders()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white p-3 rounded-lg text-center">
+                                <i class="fas fa-bell mr-2"></i>Vérifier les rappels
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Logements à surveiller -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Logements nécessitant attention</h2>
+                        <div id="attentionList" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Properties Section -->
+            <div id="propertiesSection" class="section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">Gestion des logements</h2>
+                    <button onclick="showAddPropertyModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i>Nouveau logement
+                    </button>
+                </div>
+                
+                <div id="propertiesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+            <!-- Payments Section -->
+            <div id="paymentsSection" class="section hidden">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">Historique des paiements</h2>
+                <div id="paymentsList" class="bg-white rounded-xl shadow-lg overflow-hidden"></div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settingsSection" class="section hidden">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">Paramètres</h2>
+                <div class="bg-white rounded-xl shadow-lg p-6 max-w-2xl">
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Rappels automatiques</h3>
+                            <div class="flex items-center space-x-4">
+                                <label class="text-gray-700">Jours avant rappel :</label>
+                                <input type="number" id="reminderDays" min="1" max="30" 
+                                       class="border border-gray-300 rounded-lg p-2 w-20">
+                                <button onclick="saveSettings()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                                    Enregistrer
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">
+                                Nombre de jours avant l'échéance pour recevoir un rappel
+                            </p>
+                        </div>
+                        
+                        <div class="border-t pt-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Administration</h3>
+                            <div class="space-y-3">
+                                <button onclick="showChangePassword()" class="w-full text-left p-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    <i class="fas fa-key mr-2"></i>Changer le mot de passe admin
+                                </button>
+                                <button onclick="exportData()" class="w-full text-left p-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    <i class="fas fa-download mr-2"></i>Exporter toutes les données
+                                </button>
+                                <button onclick="showResetConfirm()" class="w-full text-left p-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50">
+                                    <i class="fas fa-trash mr-2"></i>Réinitialiser la base de données
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-    <div>
-      <label class="block text-gray-700 mb-2 font-medium">Nom du locataire *</label>
-      <input type="text" id="propTenant" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Ex: M. Diallo">
+
+    <!-- Modals -->
+    <div id="addPropertyModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Nouveau logement</h3>
+                <button onclick="hideModal('addPropertyModal')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="addPropertyForm" onsubmit="event.preventDefault(); saveProperty();"></form>
+        </div>
     </div>
-    <div>
-      <label class="block text-gray-700 mb-2 font-medium">Loyer mensuel (FCFA) *</label>
-      <input type="number" id="propRent" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="50000">
+
+    <div id="paymentModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Enregistrer un paiement</h3>
+                <button onclick="hideModal('paymentModal')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="paymentForm"></div>
+        </div>
     </div>
-    <div>
-      <label class="block text-gray-700 mb-2 font-medium">Date de début *</label>
-      <input type="date" id="propStartDate" value="${today}" class="w-full p-3 border border-gray-300 rounded-lg">
+
+    <div id="remindersModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Rappels à venir</h3>
+                <button onclick="hideModal('remindersModal')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="remindersList"></div>
+        </div>
     </div>
-    <div>
-      <label class="block text-gray-700 mb-2 font-medium">Notes</label>
-      <textarea id="propNotes" class="w-full p-3 border border-gray-300 rounded-lg" rows="3" placeholder="Informations supplémentaires..."></textarea>
-    </div>
-  `;
-  document.getElementById('addModal').classList.remove('hidden');
-}
 
-function hideAddModal() {
-  document.getElementById('addModal').classList.add('hidden');
-}
+    <script>
+        const API_BASE = window.location.origin;
+        let currentUser = null;
 
-function saveProperty() {
-  const property = {
-    name: document.getElementById('propName').value,
-    address: document.getElementById('propAddress').value,
-    tenant_name: document.getElementById('propTenant').value,
-    monthly_rent: parseInt(document.getElementById('propRent').value) || 0,
-    start_date: document.getElementById('propStartDate').value,
-    months_paid: 0,
-    notes: document.getElementById('propNotes').value
-  };
-  
-  // Validation
-  if (!property.name || !property.tenant_name || property.monthly_rent <= 0) {
-    alert("Veuillez remplir les champs obligatoires (Nom, Locataire, Loyer)");
-    return;
-  }
-  
-  fetch(`${API_BASE}/api/properties`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(property)
-  })
-  .then(r => r.json())
-  .then(() => {
-    hideAddModal();
-    loadDashboard();
-    alert("Propriété ajoutée avec succès!");
-  })
-  .catch(e => {
-    console.error('Erreur ajout:', e);
-    alert("Erreur lors de l'ajout");
-  });
-}
+        // Vérifier la session au chargement
+        async function checkSession() {
+            try {
+                const response = await fetch(`${API_BASE}/api/check-session`);
+                const data = await response.json();
+                
+                if (data.loggedIn) {
+                    currentUser = data.user;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    document.getElementById('welcomeMessage').textContent = `Connecté en tant que ${data.user.name}`;
+                    loadDashboard();
+                }
+            } catch (error) {
+                console.log("Pas de session active");
+            }
+        }
 
-// Modal de paiement
-function showPaymentModal(id) {
-  currentPropertyId = id;
-  document.getElementById('payModal').classList.remove('hidden');
-}
+        // Connexion
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    document.getElementById('welcomeMessage').textContent = `Connecté en tant que ${data.user.name}`;
+                    document.getElementById('loginError').classList.add('hidden');
+                    loadDashboard();
+                } else {
+                    throw new Error(data.error || 'Identifiants incorrects');
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
 
-function hidePayModal() {
-  currentPropertyId = null;
-  document.getElementById('payModal').classList.add('hidden');
-}
+        // Déconnexion
+        async function logout() {
+            if (confirm('Voulez-vous vous déconnecter ?')) {
+                await fetch(`${API_BASE}/api/logout`, { method: 'POST' });
+                currentUser = null;
+                document.getElementById('app').classList.add('hidden');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('loginPassword').value = '';
+            }
+        }
 
-function processPayment() {
-  const months = parseInt(document.getElementById('payMonths').value) || 1;
-  
-  if (!currentPropertyId || months <= 0) {
-    alert("Données invalides");
-    return;
-  }
-  
-  fetch(`${API_BASE}/api/properties/${currentPropertyId}/payment`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ months })
-  })
-  .then(r => r.json())
-  .then(() => {
-    hidePayModal();
-    loadDashboard();
-    alert(`Paiement de ${months} mois enregistré!`);
-  })
-  .catch(e => {
-    console.error('Erreur paiement:', e);
-    alert("Erreur lors du paiement");
-  });
-}
+        // Navigation
+        function showSection(sectionName) {
+            // Cacher toutes les sections
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            // Désactiver tous les boutons de navigation
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+            });
+            
+            // Afficher la section
+            document.getElementById(sectionName + 'Section').classList.remove('hidden');
+            
+            // Activer le bouton correspondant
+            const activeBtn = Array.from(document.querySelectorAll('.nav-btn'))
+                .find(btn => btn.textContent.includes(getSectionTitle(sectionName)));
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                activeBtn.classList.add('bg-blue-600', 'text-white');
+            }
+            
+            // Charger les données de la section
+            switch(sectionName) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'properties':
+                    loadProperties();
+                    break;
+                case 'payments':
+                    loadPayments();
+                    break;
+                case 'settings':
+                    loadSettings();
+                    break;
+            }
+        }
 
-// Supprimer une propriété
-function deleteProperty(id) {
-  if (!confirm("Voulez-vous vraiment supprimer cette propriété ?")) {
-    return;
-  }
-  
-  // Note: Vous devrez ajouter une route DELETE dans app.js
-  // Pour l'instant, on va simplement recharger
-  alert("Fonctionnalité de suppression à implémenter");
-  loadDashboard();
-}
+        function getSectionTitle(section) {
+            const titles = {
+                'dashboard': 'Tableau de bord',
+                'properties': 'Logements',
+                'payments': 'Paiements',
+                'settings': 'Paramètres'
+            };
+            return titles[section] || section;
+        }
 
-// Paramètres
-function loadSettings() {
-  alert("Page des paramètres à implémenter");
-}
+        // Charger le dashboard
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/api/dashboard`);
+                if (!response.ok) throw new Error('Session expirée');
+                
+                const data = await response.json();
+                
+                // Stats
+                document.getElementById('statsCards').innerHTML = `
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="text-3xl font-bold text-blue-600">${data.totalProperties}</div>
+                        <div class="text-gray-600">Logements</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="text-3xl font-bold text-green-600">${data.totalMonthlyRent.toLocaleString()}</div>
+                        <div class="text-gray-600">FCFA/mois</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="text-3xl font-bold text-yellow-600">${data.soonDue}</div>
+                        <div class="text-gray-600">Bientôt dû</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="text-3xl font-bold text-red-600">${data.late}</div>
+                        <div class="text-gray-600">En retard</div>
+                    </div>
+                `;
+                
+                // Logements nécessitant attention
+                const attentionProperties = data.properties.filter(p => p.need_attention);
+                
+                if (attentionProperties.length > 0) {
+                    document.getElementById('reminderCount').textContent = attentionProperties.length;
+                    document.getElementById('reminderCount').classList.remove('hidden');
+                    
+                    document.getElementById('attentionList').innerHTML = attentionProperties.map(prop => `
+                        <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-semibold">${prop.name}</h4>
+                                    <p class="text-sm text-gray-600">${prop.tenant_name || 'Locataire non renseigné'}</p>
+                                    <p class="text-sm mt-1">
+                                        <span class="font-semibold">Échéance :</span> ${prop.end_date}
+                                        <span class="ml-3 font-semibold">Jours :</span> ${prop.days_remaining}
+                                    </p>
+                                </div>
+                                <button onclick="showPaymentModal(${prop.id})" 
+                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm">
+                                    Payer
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    document.getElementById('reminderCount').classList.add('hidden');
+                    document.getElementById('attentionList').innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-check-circle text-3xl text-green-500 mb-3"></i>
+                            <p>Tous les logements sont à jour</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erreur dashboard:', error);
+                logout();
+            }
+        }
 
-// Tester la connexion au chargement
-window.addEventListener('load', () => {
-  console.log("Application chargée. URL actuelle:", window.location.href);
-  console.log("API_BASE:", API_BASE);
-  
-  // Tester l'API
-  fetch(`${API_BASE}/api/test`)
-    .then(r => r.json())
-    .then(data => console.log("Test API réussi:", data))
-    .catch(e => console.warn("Test API échoué (normal si pas encore déployé):", e));
-});
-</script>
+        // Charger les logements
+        async function loadProperties() {
+            try {
+                const response = await fetch(`${API_BASE}/api/properties`);
+                const properties = await response.json();
+                
+                if (properties.length === 0) {
+                    document.getElementById('propertiesList').innerHTML = `
+                        <div class="col-span-3 text-center py-12">
+                            <i class="fas fa-home text-4xl text-gray-300 mb-4"></i>
+                            <h3 class="text-xl text-gray-600 mb-2">Aucun logement</h3>
+                            <p class="text-gray-500">Commencez par ajouter votre premier logement</p>
+                            <button onclick="showAddPropertyModal()" class="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
+                                <i class="fas fa-plus mr-2"></i>Ajouter un logement
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                document.getElementById('propertiesList').innerHTML = properties.map(prop => {
+                    const statusClass = `status-${prop.status}`;
+                    const statusColors = {
+                        'up-to-date': 'text-green-600 bg-green-100',
+                        'soon-due': 'text-yellow-600 bg-yellow-100',
+                        'late': 'text-red-600 bg-red-100'
+                    };
+                    
+                    return `
+                        <div class="bg-white rounded-xl shadow-lg overflow-hidden ${statusClass} card-hover">
+                            <div class="p-6">
+                                <div class="flex justify-between items-start mb-4">
+                                    <h3 class="text-lg font-bold text-gray-800">${prop.name}</h3>
+                                    <span class="text-xs px-2 py-1 rounded-full ${statusColors[prop.status]}">
+                                        ${prop.status === 'up-to-date' ? 'À jour' : 
+                                          prop.status === 'soon-due' ? 'Bientôt dû' : 'En retard'}
+                                    </span>
+                                </div>
+                                
+                                <div class="space-y-2 mb-4">
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fas fa-map-marker-alt mr-2"></i>
+                                        ${prop.address || 'Adresse non renseignée'}
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fas fa-user mr-2"></i>
+                                        ${prop.tenant_name || 'Locataire non renseigné'}
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fas fa-money-bill-wave mr-2"></i>
+                                        <span class="font-semibold">${prop.monthly_rent?.toLocaleString() || 0} FCFA</span> / mois
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fas fa-calendar-alt mr-2"></i>
+                                        Prochaine échéance : ${prop.end_date}
+                                    </p>
+                                </div>
+                                
+                                ${prop.notes ? `
+                                    <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                                        <p class="text-sm text-gray-700">${prop.notes}</p>
+                                    </div>
+                                ` : ''}
+                                
+                                <div class="flex space-x-2">
+                                    <button onclick="showPaymentModal(${prop.id})" 
+                                            class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg">
+                                        <i class="fas fa-money-bill-wave mr-2"></i>Payer
+                                    </button>
+                                    <button onclick="deleteProperty(${prop.id})" 
+                                            class="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Erreur propriétés:', error);
+            }
+        }
+
+        // Modal ajouter logement
+        function showAddPropertyModal() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            document.getElementById('addPropertyForm').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-1">Nom du logement *</label>
+                        <input type="text" id="propertyName" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-1">Adresse</label>
+                        <input type="text" id="propertyAddress" 
+                               class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-1">Locataire *</label>
+                        <input type="text" id="propertyTenant" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-1">Loyer (FCFA) *</label>
+                            <input type="number" id="propertyRent" required min="0" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1">Date début *</label>
+                            <input type="date" id="propertyStartDate" required value="${today}" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-1">Notes</label>
+                        <textarea id="propertyNotes" rows="3" 
+                                  class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t">
+                    <button type="submit" 
+                            class="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-semibold">
+                        <i class="fas fa-save mr-2"></i>Enregistrer le logement
+                    </button>
+                </div>
+            `;
+            
+            showModal('addPropertyModal');
+        }
+
+        // Sauvegarder logement
+        async function saveProperty() {
+            const property = {
+                name: document.getElementById('propertyName').value,
+                address: document.getElementById('propertyAddress').value,
+                tenant_name: document.getElementById('propertyTenant').value,
+                monthly_rent: parseInt(document.getElementById('propertyRent').value),
+                start_date: document.getElementById('propertyStartDate').value,
+                notes: document.getElementById('propertyNotes').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/properties`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(property)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    hideModal('addPropertyModal');
+                    alert(data.message);
+                    loadProperties();
+                    loadDashboard();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            }
+        }
+
+        // Modal paiement
+        function showPaymentModal(propertyId) {
+            document.getElementById('paymentForm').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-1">Nombre de mois payés</label>
+                        <input type="number" id="payMonths" min="1" max="12" value="1" 
+                               class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 mb-1">Notes (optionnel)</label>
+                        <textarea id="payNotes" rows="2" 
+                                  class="w-full p-3 border border-gray-300 rounded-lg"
+                                  placeholder="Détails du paiement..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t">
+                    <button onclick="processPayment(${propertyId})" 
+                            class="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-semibold">
+                        <i class="fas fa-check mr-2"></i>Enregistrer le paiement
+                    </button>
+                </div>
+            `;
+            
+            showModal('paymentModal');
+        }
+
+        // Traiter paiement
+        async function processPayment(propertyId) {
+            const months = parseInt(document.getElementById('payMonths').value);
+            const notes = document.getElementById('payNotes').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/properties/${propertyId}/pay`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ months, notes })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    hideModal('paymentModal');
+                    alert(data.message);
+                    loadProperties();
+                    loadDashboard();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            }
+        }
+
+        // Supprimer logement
+        async function deleteProperty(propertyId) {
+            if (!confirm('Voulez-vous vraiment supprimer ce logement ?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/properties/${propertyId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    loadProperties();
+                    loadDashboard();
+                }
+            } catch (error) {
+                alert('Erreur suppression');
+            }
+        }
+
+        // Charger paiements
+        async function loadPayments() {
+            try {
+                const response = await fetch(`${API_BASE}/api/payments`);
+                const payments = await response.json();
+                
+                if (payments.length === 0) {
+                    document.getElementById('paymentsList').innerHTML = `
+                        <div class="p-8 text-center text-gray-500">
+                            <i class="fas fa-money-bill-wave text-4xl text-gray-300 mb-4"></i>
+                            <p>Aucun paiement enregistré</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                document.getElementById('paymentsList').innerHTML = `
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-4 text-left">Date</th>
+                                <th class="p-4 text-left">Logement</th>
+                                <th class="p-4 text-left">Mois</th>
+                                <th class="p-4 text-left">Montant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${payments.map(payment => `
+                                <tr class="border-t hover:bg-gray-50">
+                                    <td class="p-4">${new Date(payment.payment_date).toLocaleDateString('fr-FR')}</td>
+                                    <td class="p-4">${payment.property_name}</td>
+                                    <td class="p-4">${payment.months}</td>
+                                    <td class="p-4 font-semibold">${payment.amount?.toLocaleString() || 0} FCFA</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                console.error('Erreur paiements:', error);
+            }
+        }
+
+        // Charger paramètres
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/api/settings`);
+                const settings = await response.json();
+                
+                document.getElementById('reminderDays').value = settings.reminder_days || 7;
+            } catch (error) {
+                console.error('Erreur paramètres:', error);
+            }
+        }
+
+        // Sauvegarder paramètres
+        async function saveSettings() {
+            const reminderDays = parseInt(document.getElementById('reminderDays').value);
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reminder_days: reminderDays })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Paramètres enregistrés');
+                }
+            } catch (error) {
+                alert('Erreur sauvegarde');
+            }
+        }
+
+        // Vérifier rappels
+        async function checkReminders() {
+            try {
+                const response = await fetch(`${API_BASE}/api/reminders`);
+                const reminders = await response.json();
+                
+                if (reminders.length === 0) {
+                    document.getElementById('remindersList').innerHTML = `
+                        <div class="p-8 text-center text-gray-500">
+                            <i class="fas fa-check-circle text-3xl text-green-500 mb-3"></i>
+                            <p>Aucun rappel pour les prochains jours</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('remindersList').innerHTML = reminders.map(reminder => `
+                        <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4 mb-3">
+                            <h4 class="font-semibold">${reminder.name}</h4>
+                            <p class="text-sm text-gray-600">${reminder.tenant_name || 'Locataire non renseigné'}</p>
+                            <p class="text-sm mt-1">
+                                <span class="font-semibold">Échéance :</span> ${reminder.end_date}
+                                <span class="ml-3 font-semibold">Jours restants :</span> ${Math.round(reminder.days_left)}
+                            </p>
+                        </div>
+                    `).join('');
+                }
+                
+                showModal('remindersModal');
+            } catch (error) {
+                console.error('Erreur rappels:', error);
+            }
+        }
+
+        // Exporter données
+        async function exportData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/export`);
+                const data = await response.json();
+                
+                // Créer un fichier CSV
+                const headers = ['Logement', 'Adresse', 'Locataire', 'Loyer mensuel', 'Date début', 'Mois payés', 'Prochaine échéance', 'Notes', 'Date ajout'];
+                const csv = [
+                    headers.join(','),
+                    ...data.map(row => [
+                        `"${row.logement}"`,
+                        `"${row.address}"`,
+                        `"${row.locataire}"`,
+                        row.loyer_mensuel,
+                        `"${row.date_debut}"`,
+                        row.mois_payes,
+                        `"${row.prochaine_echeance}"`,
+                        `"${(row.notes || '').replace(/"/g, '""')}"`,
+                        `"${row.date_ajout}"`
+                    ].join(','))
+                ].join('\n');
+                
+                // Télécharger
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `loyers_export_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                alert('Export terminé !');
+            } catch (error) {
+                alert('Erreur export');
+            }
+        }
+
+        // Fonctions utilitaires modals
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // Styles modals
+        const style = document.createElement('style');
+        style.textContent = `
+            .modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                padding: 1rem;
+            }
+            .modal-content {
+                background: white;
+                border-radius: 12px;
+                padding: 1.5rem;
+                max-width: 500px;
+                width: 100%;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Vérifier la session au chargement
+        window.addEventListener('load', checkSession);
+    </script>
 </body>
 </html>
